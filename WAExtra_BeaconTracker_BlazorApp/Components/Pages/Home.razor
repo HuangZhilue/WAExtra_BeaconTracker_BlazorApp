@@ -1,0 +1,32 @@
+﻿@using WAExtra_BeaconTracker_BlazorApp.Components.Pages.Map
+@page "/"
+
+@rendermode InteractiveServer
+
+<PageTitle>Home</PageTitle>
+<MapSetting EnableArea="EnableArea"
+            EnableAreaName="EnableAreaName"
+            EnableAxis="EnableAxis"
+            EnableTrackUpdate="EnableTrackUpdate"
+            UpdateEnableAxis="@((e)=>{Console.WriteLine("UpdateEnableAxis\t"+e);EnableAxis =e;})"
+            UpdateCLEInfo="@((e)=>Console.WriteLine(e.Name))">
+</MapSetting>
+<h1>Hello, world!</h1>
+
+Welcome to your new app.
+
+@code {
+    private bool _enableAxis = false;
+    private bool EnableAxis
+    {
+        get => _enableAxis;
+        set
+        {
+            _enableAxis = value;
+            Console.WriteLine("_enableAxis\t" + _enableAxis);
+        }
+    }
+    private bool EnableArea { get; set; } = true;
+    private bool EnableAreaName { get; set; } = true;
+    private bool EnableTrackUpdate { get; set; } = false;
+}

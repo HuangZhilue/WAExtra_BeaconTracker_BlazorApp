@@ -1,0 +1,651 @@
+﻿@using System.Text.Json
+@using Blazored.LocalStorage
+@using ModelLibrary.CLEModels
+@using WAExtra_BeaconTracker_BlazorApp.Models
+@using WAExtra_BeaconTracker_BlazorApp.Models.NewCLEModels
+@using WAExtra_BeaconTracker_BlazorApp.Services.ApiServices
+
+@inject IHttpClientFactory ClientFactory
+@inject IndexApiService IndexApiService
+@inject ILocalStorageService LocalStorageService
+@inject IJSRuntime JSRuntime
+
+<MudCard>
+    <MudCardContent Style="position: relative;">
+        <MudOverlay Visible="IsLoading" DarkBackground="true" Absolute="true">
+            <MudProgressCircular Color="Color.Secondary" Indeterminate="true" />
+        </MudOverlay>
+        <MudGrid>
+            <MudItem sm="6" xs="12">
+                <MudSelect T="NewCLEInfo"
+                           @bind-Value="SelectCLEInfoValue"
+                           Label="选择CLE项目"
+                           Variant="Variant.Filled"
+                           AnchorOrigin="Origin.BottomCenter"
+                           SelectedValuesChanged="((items)=>InitCLEMapList(items.FirstOrDefault()))">
+                    @foreach (var cleInfo in SelectCLEInfoOptions)
+                    {
+                        <MudSelectItem Value="@(cleInfo.Value)" />
+                    }
+                    @* <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Refresh" Color="Color.Primary" FullWidth="true">刷新项目列表</MudButton> *@
+                </MudSelect>
+            </MudItem>
+            <MudItem sm="6" xs="12">
+                @if (!string.IsNullOrWhiteSpace(SelectCLEInfoValue.Id))
+                {
+                    <MudSelect T="NewCLEMap"
+                               @bind-Value="SelectCLEMapValue"
+                               Label="选择CLE地图"
+                               Variant="Variant.Filled"
+                               AnchorOrigin="Origin.BottomCenter"
+                               SelectedValuesChanged="((items)=>InitCLEMap(items.FirstOrDefault()))">
+                        @foreach (var cleMap in SelectCLEMapOptions)
+                        {
+                            <MudSelectItem Value="@(cleMap.Value)" />
+                        }
+                    </MudSelect>
+                }
+            </MudItem>
+        </MudGrid>
+        @if (!string.IsNullOrWhiteSpace(SelectCLEMapValue.Id))
+        {
+            <MudGrid Justify="Justify.FlexStart">
+                <MudItem xxl="3" xl="3" lg="3" md="4" sm="4" xs="12">
+                    <MudSwitch LabelPosition="LabelPosition.End" Label="显示XY坐标轴" Checked="EnableAxis" Color="Color.Primary" T="bool" CheckedChanged="((e)=>UpdateEnableAxis.InvokeAsync(e))" />
+                </MudItem>
+                <MudItem xxl="3" xl="3" lg="3" md="4" sm="4" xs="12">
+                    <MudSwitch LabelPosition="LabelPosition.End" Label="显示区域" Checked="EnableArea" Color="Color.Primary" T="bool" CheckedChanged="((e)=>UpdateEnableArea.InvokeAsync(e))" />
+                </MudItem>
+                <MudItem xxl="3" xl="3" lg="3" md="4" sm="4" xs="12">
+                    <MudSwitch LabelPosition="LabelPosition.End" Label="显示区域名称" Checked="EnableAreaName" Color="Color.Primary" T="bool" CheckedChanged="((e)=>UpdateEnableAreaName.InvokeAsync(e))" />
+                </MudItem>
+            </MudGrid>
+            <MudTabs Elevation="2" Centered="true" Rounded="true" ApplyEffectsToContainer="true">
+                <MudTabPanel Text="轨迹" Icon="@Icons.Material.Filled.Polyline">
+                    <MudGrid>
+                        <MudItem sm="6" xs="12">
+                            <MudSelect T="CLEBeaconTrailSearchType"
+                                       Label="轨迹类型"
+                                       @bind-Value="SearchType4TrackValue"
+                                       Variant="Variant.Filled"
+                                       AnchorOrigin="Origin.BottomCenter"
+                                       SelectedValuesChanged="@((items)=> {if(SearchType4TrackValue==CLEBeaconTrailSearchType.BeaconMac)InitCLEBeaconList();})">
+                                @foreach (var cleInfo in SearchType4TrackOptions)
+                                {
+                                    <MudSelectItem Value="@(cleInfo.Value)">@(cleInfo.Key)</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem sm="6" xs="12">
+                            @if (SearchType4TrackValue == CLEBeaconTrailSearchType.BeaconMac)
+                            {
+                                <MudSelect T="string"
+                                           Label="信标MAC地址"
+                                           @bind-Value="SearchText4Track"
+                                           Variant="Variant.Filled"
+                                           AnchorOrigin="Origin.BottomCenter"
+                                           SelectedValuesChanged="GetTrackData">
+                                    @foreach (var mac in SelectCLEBeaconOptions)
+                                    {
+                                        <MudSelectItem Value="@(mac.Key)" />
+                                    }
+                                </MudSelect>
+                            }
+                            else
+                            {
+                                <MudTextField @bind-Value="SearchText4Track" Label="具体号码" Placeholder="具体的号码，不支持模糊搜索" Variant="Variant.Filled" OnBlur="GetTrackData"></MudTextField>
+                            }
+                        </MudItem>
+                    </MudGrid>
+                    <MudGrid Justify="Justify.FlexStart">
+                        <MudItem>
+                            <MudSwitch LabelPosition="LabelPosition.End" Label="自动轨迹" Checked="EnableTrackUpdate" Color="Color.Primary" T="bool" CheckedChanged="((e)=>{UpdateEnableTrackUpdate.InvokeAsync(e);GetTrackData();})" />
+                        </MudItem>
+                    </MudGrid>
+                    @if (!EnableTrackUpdate)
+                    {
+                        <MudGrid Justify="Justify.FlexStart">
+                            <MudItem xxl="3" xl="3" lg="3" md="3" sm="5" xs="5">
+                                <MudDatePicker Label="开始日期" @bind-Date="StartDate" />
+                            </MudItem>
+                            <MudItem xxl="2" xl="2" lg="2" md="2" sm="5" xs="5">
+                                <MudTimePicker Label="开始时间" @bind-Time="StartTime" />
+                            </MudItem>
+                            <MudItem xxl="3" xl="3" lg="3" md="2" sm="5" xs="5">
+                                <MudDatePicker Label="结束日期" @bind-Date="EndDate" />
+                            </MudItem>
+                            <MudItem xxl="2" xl="2" lg="2" md="2" sm="5" xs="5">
+                                <MudTimePicker Label="结束时间" @bind-Time="EndTime" />
+                            </MudItem>
+                            <MudItem xxl="2" xl="2" lg="2" md="2" sm="2" xs="2">
+                                <MudFab StartIcon="@Icons.Material.Filled.Search" Color="Color.Primary" OnClick="GetTrackData"></MudFab>
+                            </MudItem>
+                        </MudGrid>
+                    }
+                    @if (SearchType4TrackValue == CLEBeaconTrailSearchType.AwbNo)
+                    {
+                        <MudGrid>
+                            <MudItem sm="6" xs="12">
+                                <MudSelect T="CLEBeaconTrailSearchType"
+                                           @bind-Value="SearchType4TrackGroupValue"
+                                           Label="子轨迹类型"
+                                           Variant="Variant.Filled"
+                                           AnchorOrigin="Origin.BottomCenter"
+                                           SelectedValuesChanged="InitTrackGroupData">
+                                    @foreach (var trackGroup in SearchType4TrackGroupOptions)
+                                    {
+                                        <MudSelectItem Value="@(trackGroup.Value)">@(trackGroup.Key)</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem sm="6" xs="12">
+                                <MudSelect T="string"
+                                           @bind-Value="TrackGroupValue"
+                                           Label="具体轨迹"
+                                           Variant="Variant.Filled"
+                                           AnchorOrigin="Origin.BottomCenter"
+                                           SelectedValuesChanged="GetTrackGroupData">
+                                    @foreach (var trackGroup in TrackGroupOptions)
+                                    {
+                                        <MudSelectItem Value="@(trackGroup)" />
+                                    }
+                                </MudSelect>
+                                @* <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Refresh" Color="Color.Primary" FullWidth="true">刷新项目列表</MudButton> *@
+                            </MudItem>
+                        </MudGrid>
+                    }
+                </MudTabPanel>
+                <MudTabPanel Text="位置" Icon="@Icons.Material.Filled.MyLocation">
+                    <MudText>Content Two</MudText>
+                </MudTabPanel>
+            </MudTabs>
+        }
+    </MudCardContent>
+    <MudCardActions>
+        <MudButton StartIcon="@Icons.Material.Filled.Close" Variant="Variant.Filled" Color="Color.Secondary" OnClick="@(()=>{_=UpdateShow.InvokeAsync(false).ConfigureAwait(false);})">关闭</MudButton>
+    </MudCardActions>
+</MudCard>
+
+@code {
+    [Parameter]
+    public bool EnableAxis { get; set; } = true;
+    [Parameter]
+    public bool EnableArea { get; set; } = true;
+    [Parameter]
+    public bool EnableAreaName { get; set; } = true;
+    [Parameter]
+    public bool EnableTrackUpdate { get; set; } = false;
+    [Parameter]
+    public EventCallback<bool> UpdateShow { get; set; }
+    [Parameter]
+    public EventCallback<NewCLEInfo> UpdateCLEInfo { get; set; }
+    [Parameter]
+    public EventCallback<NewCLEMap> UpdateCLEMap { get; set; }
+    [Parameter]
+    public EventCallback<string> UpdateCLEMapImage { get; set; }
+    [Parameter]
+    public EventCallback<bool> UpdateEnableAxis { get; set; }
+    [Parameter]
+    public EventCallback<bool> UpdateEnableArea { get; set; }
+    [Parameter]
+    public EventCallback<bool> UpdateEnableAreaName { get; set; }
+    [Parameter]
+    public EventCallback<bool> UpdateEnableTrackUpdate { get; set; }
+    [Parameter]
+    public EventCallback<CLEBeaconTrailSearchType> UpdateSearchType4TrackValue { get; set; }
+    [Parameter]
+    public EventCallback<CLEBeaconTrailSearchType> UpdateSearchType4PositionValue { get; set; }
+    [Parameter]
+    public EventCallback<SortedDictionary<string, List<NewCLETrack>>> UpdateTrack { get; set; }
+    [Parameter]
+    public EventCallback<SortedDictionary<string, List<NewCLETrack>>> UpdatePosition { get; set; }
+
+    /// <summary>
+    /// CLE Info 选择选项
+    /// </summary>
+    private SortedList<string, NewCLEInfo> SelectCLEInfoOptions { get; } = [];
+    /// <summary>
+    /// 选中的 CLE Info
+    /// </summary>
+    private NewCLEInfo SelectCLEInfoValue { get; set; } = new();
+    /// <summary>
+    /// CLE Map 选择选项
+    /// </summary>
+    private SortedList<string, NewCLEMap> SelectCLEMapOptions { get; } = [];
+    /// <summary>
+    /// 选中的 CLE Map
+    /// </summary>
+    private NewCLEMap SelectCLEMapValue { get; set; } = new();
+    /// <summary>
+    /// CLE Beacon 选择选项
+    /// </summary>
+    private SortedList<string, string> SelectCLEBeaconOptions { get; } = [];
+
+    #region 轨迹面板
+
+    /// <summary>
+    /// 轨迹类型选项
+    /// </summary>
+    private SortedDictionary<string, CLEBeaconTrailSearchType> SearchType4TrackOptions { get; } = new() {
+        { "AwbNo", CLEBeaconTrailSearchType.AwbNo },
+        { "ULD", CLEBeaconTrailSearchType.ULD },
+        { "RFID", CLEBeaconTrailSearchType.RFID},
+        { "Mac", CLEBeaconTrailSearchType.BeaconMac },
+    };
+    /// <summary>
+    /// 选中的轨迹类型（默认：AwbNo）
+    /// </summary>
+    private CLEBeaconTrailSearchType SearchType4TrackValue { get; set; } = CLEBeaconTrailSearchType.AwbNo;
+    /// <summary>
+    /// 轨迹查询：具体号码/具体信标MAC地址
+    /// </summary>
+    private string SearchText4Track { get; set; } = string.Empty;
+    /// <summary>
+    /// 上次轨迹查询：具体号码/具体信标MAC地址
+    /// </summary>
+    private string LastSearchText4Track { get; set; } = string.Empty;
+    /// <summary>
+    /// 轨迹时间
+    /// </summary>
+    // private DateTime? DateRange { get; set; } = DateTime.Now;
+    /// <summary>
+    /// 子轨迹类型选项
+    /// </summary>
+    private SortedDictionary<string, CLEBeaconTrailSearchType> SearchType4TrackGroupOptions { get; } = new()
+    {
+        { "ULD", CLEBeaconTrailSearchType.ULD },
+        { "RFID", CLEBeaconTrailSearchType.RFID},
+        { "Mac", CLEBeaconTrailSearchType.BeaconMac },
+    };
+    /// <summary>
+    /// 选中的子轨迹类型（默认：ULD）
+    /// </summary>
+    private CLEBeaconTrailSearchType SearchType4TrackGroupValue { get; set; } = CLEBeaconTrailSearchType.ULD;
+    /// <summary>
+    /// 轨迹分组选项
+    /// </summary>
+    private List<string> TrackGroupOptions { get; } = [];
+    /// <summary>
+    /// 选中的轨迹分组
+    /// </summary>
+    private string TrackGroupValue { get; set; } = string.Empty;
+    private DateTime? StartDate { get; set; } = DateTime.Today;
+    private TimeSpan? StartTime { get; set; } = new TimeSpan(00, 00, 00);
+    private DateTime? EndDate { get; set; } = DateTime.Today;
+    private TimeSpan? EndTime { get; set; } = new TimeSpan(23, 59, 59);
+
+    #endregion
+
+    #region 位置面板
+
+    /// <summary>
+    /// 位置查询：具体号码
+    /// </summary>
+    private string SearchText4Position { get; set; } = string.Empty;
+    /// <summary>
+    /// 上次有效的位置查询：具体号码
+    /// </summary>
+    private string LastSearchText4Position { get; set; } = string.Empty;
+    /// <summary>
+    /// 位置类型选项
+    /// </summary>
+    private SortedDictionary<string, CLEBeaconTrailSearchType> SearchType4PositionOptions { get; } = new() {
+        { "AwbNo", CLEBeaconTrailSearchType.AwbNo },
+        { "ULD", CLEBeaconTrailSearchType.ULD },
+        { "RFID", CLEBeaconTrailSearchType.RFID},
+    };
+    /// <summary>
+    /// 选中的位置类型选项
+    /// </summary>
+    private CLEBeaconTrailSearchType SearchType4PositionValue { get; set; } = CLEBeaconTrailSearchType.AwbNo;
+
+    #endregion
+
+    /// <summary>
+    /// 自动轨迹更新时，允许的单条轨迹的最大点位数量
+    /// </summary>
+    private int MaxPointLength { get; } = 500;
+    /// <summary>
+    /// 请求拿到的轨迹数据
+    /// </summary>
+    private List<NewCLETrack> TrackJson { get; set; } = [];
+    /// <summary>
+    /// 分组后的轨迹数据
+    /// </summary>
+    private SortedDictionary<string, List<NewCLETrack>> TrackGroup { get; } = [];
+    /// <summary>
+    /// 请求拿到的位置数据
+    /// </summary>
+    private List<NewCLETrack> PositionJson { get; set; } = [];
+    /// <summary>
+    /// 分组后的位置数据
+    /// </summary>
+    private SortedDictionary<string, List<NewCLETrack>> PositionGroup { get; } = [];
+
+    private bool _isLoading = false;
+    private bool IsLoading
+    {
+        get => _isLoading; set
+        {
+            _isLoading = value;
+            Console.WriteLine(value);
+            _ = InvokeAsync(StateHasChanged);
+        }
+    }
+
+    protected override Task OnInitializedAsync()
+    {
+        return Task.CompletedTask;
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            InitCLEInfoList();
+        }
+        return base.OnAfterRenderAsync(firstRender);
+    }
+
+    #region CLE相关
+
+    /// <summary>
+    /// 初始化CLE信息列表。
+    /// <br/>
+    /// 从服务器获取CLE信息列表，并更新状态中的列表。
+    /// <br/>
+    /// 同时生成CLE信息的选择选项，并按字母顺序排序。
+    /// </summary>
+    private async void InitCLEInfoList()
+    {
+        SelectCLEInfoValue = new();
+        SelectCLEMapValue = new();
+        SelectCLEInfoOptions.Clear();
+        SelectCLEMapOptions.Clear();
+        await LocalStorageService.RemoveItemsAsync(
+            [nameof(NewCLEInfo), nameof(NewCLEInfo) + "List", nameof(NewCLEMap), nameof(NewCLEMap) + "List", "CLEMapImage"]
+        ).ConfigureAwait(false);
+        IsLoading = true;
+        List<NewCLEInfo>? result = await IndexApiService.GetCLEInfo().ConfigureAwait(false);
+        foreach (NewCLEInfo info in result)
+        {
+            SelectCLEInfoOptions.Add(info.Name, info);
+        }
+        await LocalStorageService.SetItemAsync<List<NewCLEInfo>>(nameof(NewCLEInfo) + "List", result).ConfigureAwait(false);
+        IsLoading = false;
+    }
+
+    /// <summary>
+    /// 根据提供的 infoId 初始化 CLE Map 列表。
+    /// <br/>
+    /// 如果未提供 infoId，则初始化 CLE Info 列表。
+    /// </summary>
+    /// <param name="info">CLE Info 的 id</param>
+    private async void InitCLEMapList(NewCLEInfo? info)
+    {
+        if (info is null || string.IsNullOrWhiteSpace(info.Id))
+        {
+            InitCLEInfoList();
+            return;
+        }
+        SelectCLEMapOptions.Clear();
+        SelectCLEMapValue = new();
+        await UpdateCLEInfo.InvokeAsync(info).ConfigureAwait(false);
+        await LocalStorageService.SetItemAsync<NewCLEInfo>(nameof(NewCLEInfo), info).ConfigureAwait(false);
+        await LocalStorageService.RemoveItemsAsync(
+            [nameof(NewCLEMap), nameof(NewCLEMap) + "List", "CLEMapImage"]
+        ).ConfigureAwait(false);
+
+        IsLoading = true;
+        List<NewCLEMap>? result = await IndexApiService.GetCLEMaps(info.Id).ConfigureAwait(false);
+        foreach (NewCLEMap cleMap in result)
+        {
+            SelectCLEMapOptions.Add(cleMap.Name, cleMap);
+        }
+        await LocalStorageService.SetItemAsync<List<NewCLEMap>>(nameof(NewCLEMap) + "List", result).ConfigureAwait(false);
+
+        IsLoading = false;
+    }
+
+    /// <summary>
+    /// 初始化CLE地图
+    /// </summary>
+    /// <param name="map">地图的ID</param>
+    private async void InitCLEMap(NewCLEMap? map)
+    {
+        if (map is null || string.IsNullOrWhiteSpace(map.Id)) return;
+        IsLoading = true;
+
+        await LocalStorageService.SetItemAsync<NewCLEMap>(nameof(NewCLEMap), map).ConfigureAwait(false);
+        await LocalStorageService.RemoveItemAsync("CLEMapImage").ConfigureAwait(false);
+        string cleMapImage = await IndexApiService.GetCLEMapImage(map.Id).ConfigureAwait(false);
+        await LocalStorageService.SetItemAsStringAsync("CLEMapImage", cleMapImage).ConfigureAwait(false);
+
+        await UpdateCLEMap.InvokeAsync(map).ConfigureAwait(false);
+        await UpdateCLEMapImage.InvokeAsync(cleMapImage).ConfigureAwait(false);
+
+        IsLoading = false;
+    }
+
+    #endregion
+
+    #region 轨迹相关方法相关
+
+    /// <summary>
+    /// 初始化CLE Beacon列表
+    /// </summary>
+    private async void InitCLEBeaconList()
+    {
+        SearchText4Track = string.Empty;
+        await UpdateSearchType4TrackValue.InvokeAsync(SearchType4TrackValue).ConfigureAwait(false);
+        if (SearchType4TrackValue != CLEBeaconTrailSearchType.BeaconMac) return;
+        await LocalStorageService.RemoveItemsAsync([nameof(CLEBeacon), nameof(CLEBeacon) + "List"]).ConfigureAwait(false);
+        SelectCLEBeaconOptions.Clear();
+        IsLoading = true;
+        List<string>? result = await IndexApiService.GetBeaconList().ConfigureAwait(false);
+        foreach (string mac in result)
+        {
+            SelectCLEBeaconOptions.Add(mac, mac);
+        }
+        await LocalStorageService.SetItemAsync<List<string>>(nameof(CLEBeacon) + "List", result).ConfigureAwait(false);
+        IsLoading = false;
+    }
+
+    /// <summary>
+    /// 获取轨迹数据
+    /// </summary>
+    private async void GetTrackData()
+    {
+        if (SearchType4TrackValue == CLEBeaconTrailSearchType.AwbNo && string.IsNullOrWhiteSpace(SearchText4Track))
+            return;
+
+        SearchType4TrackGroupValue = CLEBeaconTrailSearchType.ULD;
+        TrackGroupValue = string.Empty;
+        TrackGroupOptions.Clear();
+        // 清除现有数据
+        TrackJson.Clear();
+        TrackGroup.Clear();
+        PositionJson.Clear();
+        PositionGroup.Clear();
+
+        IsLoading = true;
+        if (EnableTrackUpdate)
+        {
+            TrackJson = await IndexApiService.GetCLEBeaconLastTrail(SearchType4TrackValue, SearchText4Track, SelectCLEMapValue.Id).ConfigureAwait(false);
+        }
+        else
+        {
+            TrackJson = await IndexApiService.GetCLEBeaconTrail(SearchType4TrackValue, SearchText4Track, SelectCLEMapValue.Id, (StartDate ?? DateTime.Today).AddTicks((StartTime ?? TimeSpan.Zero).Ticks), (EndDate ?? DateTime.Today.AddDays(1)).AddTicks((EndTime ?? TimeSpan.Zero).Ticks)).ConfigureAwait(false);
+        }
+        LastSearchText4Track = SearchText4Track;
+        InitTrackGroupData();
+        IsLoading = false;
+    }
+
+    /// <summary>
+    /// 初始化轨迹分组
+    /// </summary>
+    private void InitTrackGroupData()
+    {
+        TrackGroupValue = string.Empty;
+        TrackGroupOptions.Clear();
+        // 对轨迹进行分组（按 ULD、RFID标签号、信标MAC地址 进行分组）
+        // 目前仅对 轨迹类型=AWBNo 的进行分组
+        var SubTrackType = SearchType4TrackGroupValue;
+        if (SearchType4TrackValue != CLEBeaconTrailSearchType.AwbNo)
+        {
+            SubTrackType = SearchType4TrackValue;
+        }
+
+        IEnumerable<IGrouping<string, NewCLETrack>> trackJsonTemp = [];
+        switch (SubTrackType)
+        {
+            case CLEBeaconTrailSearchType.ULD:
+                {
+                    trackJsonTemp = TrackJson.GroupBy((g) => g.ULD);
+                    break;
+                }
+            case CLEBeaconTrailSearchType.RFID:
+                {
+                    trackJsonTemp = TrackJson.GroupBy((g) => g.RFID);
+                    break;
+                }
+            case CLEBeaconTrailSearchType.BeaconMac:
+            default:
+                {
+                    trackJsonTemp = TrackJson.GroupBy((g) => g.Mac);
+                    break;
+                }
+        }
+        trackJsonTemp.ToList().ForEach(g => TrackGroupOptions.Add(g.Key));
+        // 往TrackGroupOptions.value的开头添加一个“ALL”
+        TrackGroupOptions.Insert(0, "ALL");
+        var existingValue = TrackGroupOptions.Any(
+          (option) => option == TrackGroupValue
+        );
+        if (!existingValue && TrackGroupOptions.FirstOrDefault() is string option) TrackGroupValue = option;
+        GetTrackGroupData();
+    }
+
+    /// <summary>
+    /// 获取轨迹分组数据
+    /// </summary>
+    private async void GetTrackGroupData()
+    {
+        TrackGroup.Clear();
+        List<NewCLETrack> trackListHadRemoved = [];
+        IEnumerable<IGrouping<string, NewCLETrack>> trackJsonTemp = [];
+        if (TrackGroupValue != "ALL")
+        {
+            switch (SearchType4TrackGroupValue)
+            {
+                case CLEBeaconTrailSearchType.RFID:
+                    trackJsonTemp = TrackJson.Where((g) => g.RFID == TrackGroupValue)
+                       .GroupBy((g) => g.RFID);
+                    break;
+                case CLEBeaconTrailSearchType.ULD:
+                    trackJsonTemp = TrackJson.Where((g) => g.ULD == TrackGroupValue)
+                       .GroupBy((g) => g.ULD);
+                    break;
+                case CLEBeaconTrailSearchType.BeaconMac:
+                default:
+                    trackJsonTemp = TrackJson.Where((g) => g.Mac == TrackGroupValue)
+                       .GroupBy((g) => g.Mac);
+                    break;
+            }
+        }
+        else
+        {
+            switch (SearchType4TrackGroupValue)
+            {
+                case CLEBeaconTrailSearchType.RFID:
+                    trackJsonTemp = TrackJson.GroupBy((g) => g.RFID);
+                    break;
+                case CLEBeaconTrailSearchType.ULD:
+                    trackJsonTemp = TrackJson.GroupBy((g) => g.ULD);
+                    break;
+                case CLEBeaconTrailSearchType.BeaconMac:
+                default:
+                    trackJsonTemp = TrackJson.GroupBy((g) => g.Mac);
+                    break;
+            }
+        }
+        trackJsonTemp.Select((g) =>
+           {
+               var trackList = g.ToList();
+               if (trackList.Count > MaxPointLength)
+               {
+                   // 移除一半，以便保持数据量在合理范围（即：不会一下子移除maxPointLength个点位，让本来1001个点位一下子变成1个点位，而是变成501个点位）
+                   var removeCount = trackList.Count - MaxPointLength / 2;
+                   trackListHadRemoved = trackList.GetRange(0, removeCount);
+                   trackList.RemoveRange(0, removeCount);
+               }
+               TrackGroup[g.Key] = trackList;
+               return g;
+           });
+
+        List<NewCLETrack> filteredTrackJson = TrackJson.Where(item => !trackListHadRemoved.Any(removedElements => removedElements == item)).ToList();
+
+        TrackJson = filteredTrackJson;
+
+        await UpdateTrack.InvokeAsync(TrackGroup).ConfigureAwait(false);
+    }
+
+    #endregion
+
+    #region 位置相关方法
+
+    /// <summary>
+    /// 初始化货物列表
+    /// </summary>
+    private async void InitPositionGroupData()
+    {
+        // 清除现有数据
+        TrackJson.Clear();
+        TrackGroup.Clear();
+        PositionJson.Clear();
+        PositionGroup.Clear();
+        TrackGroupOptions.Clear();
+        TrackGroupValue = string.Empty;
+        await UpdateSearchType4PositionValue.InvokeAsync(SearchType4PositionValue).ConfigureAwait(false);
+        IsLoading = true;
+        // 获取所有CLE信标位置
+        var result = await IndexApiService.GetAllCLEBeaconPosition(SearchType4PositionValue, SearchText4Position, SelectCLEMapValue.Id).ConfigureAwait(false);
+        LastSearchText4Position = SearchText4Position;
+        PositionJson = result;
+        GetPositionGroupData();
+        IsLoading = false;
+    }
+
+    private async void GetPositionGroupData()
+    {
+        PositionGroup.Clear();
+        IEnumerable<IGrouping<string, NewCLETrack>> positionJsonTemp = [];
+        // 根据搜索类型对位置进行分组
+        switch (SearchType4PositionValue)
+        {
+            case CLEBeaconTrailSearchType.AwbNo:
+                // 按AwbNo分组位置
+                positionJsonTemp = PositionJson.GroupBy((x) => x.AwbNo);
+                break;
+            case CLEBeaconTrailSearchType.RFID:
+                // 按RFID分组位置
+                positionJsonTemp = PositionJson.GroupBy((x) => x.RFID);
+                break;
+            case CLEBeaconTrailSearchType.ULD:
+                // 按ULD分组位置
+                positionJsonTemp = PositionJson.GroupBy((x) => x.ULD);
+                break;
+            case CLEBeaconTrailSearchType.BeaconMac:
+            default:
+                // 按Mac分组位置
+                positionJsonTemp = PositionJson.GroupBy((x) => x.Mac);
+                break;
+        }
+        positionJsonTemp.ToList().ForEach(x => PositionGroup[x.Key] = x.ToList());
+
+        await UpdatePosition.InvokeAsync(PositionGroup).ConfigureAwait(false);
+    }
+
+    #endregion
+}

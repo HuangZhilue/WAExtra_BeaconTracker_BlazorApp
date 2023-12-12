@@ -1,0 +1,79 @@
+﻿@using ItrackerAdminBlazorApp.Services;
+@inject IJSRuntime JSRuntime;
+@inject IThemeInterop ThemeInterop;
+
+@inherits LayoutComponentBase
+
+<MudThemeProvider IsDarkMode="IsDarkTheme" />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <MudText Typo="Typo.h5" Class="ml-3">Application</MudText>
+        <MudSpacer />
+        <MudIconButton Icon="@(IsDarkTheme ? Icons.Material.Outlined.DarkMode : Icons.Material.Outlined.LightMode)" Color="Color.Inherit" Edge="Edge.End" OnClick="SwitchTheme" />
+    </MudAppBar>
+    <MudDrawer @bind-Open="DrawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+        <NavMenu />
+    </MudDrawer>
+    <MudMainContent>
+        @Body
+    </MudMainContent>
+    <MudThemeManagerButton OnClick="@((e) => OpenThemeManager(true))" />
+    <MudThemeManager Open="ThemeManagerOpen" OpenChanged="OpenThemeManager" Theme="_themeManager" ThemeChanged="UpdateTheme" />
+</MudLayout>
+
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">🗙</a>
+</div>
+
+@code {
+    private bool DrawerOpen { get; set; } = true;
+    private bool IsDarkTheme { get; set; } = false;
+
+    protected override async Task OnAfterRenderAsync(bool isFirstRender)
+    {
+        if (isFirstRender)
+        {
+            // 获取系统主题
+            string systemTheme = await ThemeInterop.GetSystemTheme(JSRuntime);
+            IsDarkTheme = systemTheme.Equals("DARK", StringComparison.InvariantCultureIgnoreCase);
+            ThemeInterop.SetSystemTheme(IsDarkTheme);
+            StateHasChanged();
+        }
+    }
+
+    private void SwitchTheme()
+    {
+        ThemeInterop.SetSystemTheme(!IsDarkTheme);
+        IsDarkTheme = !IsDarkTheme;
+    }
+
+    private void DrawerToggle()
+    {
+        DrawerOpen = !DrawerOpen;
+    }
+
+    private ThemeManagerTheme _themeManager = new ThemeManagerTheme();
+    private bool ThemeManagerOpen = false;
+
+    private void OpenThemeManager(bool value)
+    {
+        ThemeManagerOpen = value;
+    }
+
+    private void UpdateTheme(ThemeManagerTheme value)
+    {
+        _themeManager = value;
+        StateHasChanged();
+    }
+
+    protected override void OnInitialized()
+    {
+        StateHasChanged();
+    }
+}
