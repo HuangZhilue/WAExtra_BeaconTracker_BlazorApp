@@ -1,0 +1,61 @@
+﻿@using System.Text.RegularExpressions
+
+@inject IJSRuntime JSRuntime
+@inject IThemeInterop ThemeInterop;
+
+@page "/dev/colorlist"
+<PageTitle>Color List</PageTitle>
+
+<MudCard>
+    <MudCardContent>
+        <MudGrid>
+            @foreach (var style in StyleDic)
+            {
+                <MudItem xs="3">
+                    <MudPaper
+                        Class="pa-6 ma-2 color-item" 
+                        Style="@(style.IsColor?"background-color: "+style.Color+"; border: 1px solid red":"")">
+                        <span class="colorName">@(style.Name)</span>
+                        <br />
+                        <span class="colorString">@(style.Color)</span>
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    private List<DevThemeColor> StyleDic { get; set; } = [];
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            ThemeChanged(null, await ThemeInterop.GetSystemTheme());
+            ThemeInterop.ThemeChanged += ThemeChanged;
+        }
+    }
+
+    private async void ThemeChanged(object? args,string themeName)
+    {
+        JSRuntime.ConsoleInfo("MapWorld\t=>\tThemeChanged:\t"+themeName,args!);
+        List<DevThemeColor> styleDic = await JSRuntime.InvokeAsync<List<DevThemeColor>>("themeInterop.getComputedStyle", ":root");
+        styleDic.ForEach(x => x.IsColor = IsColor(x.Color));
+        StyleDic = styleDic;
+        JSRuntime.ConsoleDebug(StyleDic);
+        _= InvokeAsync(StateHasChanged);       
+    }
+
+    public static bool IsColor(string color)
+    {
+        return ColorRegexArr.Exists(regex => Regex.IsMatch(color, regex));
+    }
+
+    public class DevThemeColor
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Color { get; set; } = string.Empty;
+        public bool IsColor { get; set; } = false;
+    }
+}

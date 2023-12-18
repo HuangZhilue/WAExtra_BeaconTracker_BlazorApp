@@ -10,15 +10,20 @@
     <link rel="icon" type="image/png" href="favicon.png" />
     <link href="_content/MudBlazor.ThemeManager/MudBlazorThemeManager.css" rel="stylesheet" />
     <link href="css/roboto-font.css" rel="stylesheet" />
+    @* <link href="beacontrack-library/style.css" rel="stylesheet" /> *@
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
-    <HeadOutlet />
+    <link href="leaflet@2.0-dev/leaflet.css" rel="stylesheet" />
+    <HeadOutlet @rendermode="InteractiveServer" />
 </head>
 
 <body>
     <Routes @rendermode="InteractiveServer"/>
     <script src="_framework/blazor.web.js"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
-    <script src="themeinterop.js"></script>
+    <script src="js/themeinterop.js"></script>
+    <script src="leaflet@2.0-dev/leaflet.js"></script>
+    @* <script src="beacontrack-library/beacontrack-library.js"></script> *@
+    @* <script src="beacontrack-library/index.js" ></script> *@
 </body>
 
 </html>

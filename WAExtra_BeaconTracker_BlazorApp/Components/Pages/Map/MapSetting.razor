@@ -16,7 +16,7 @@
             <MudProgressCircular Color="Color.Secondary" Indeterminate="true" />
         </MudOverlay>
         <MudGrid>
-            <MudItem sm="6" xs="12">
+            <MudItem xs="12">
                 <MudSelect T="NewCLEInfo"
                            @bind-Value="SelectCLEInfoValue"
                            Label="选择CLE项目"
@@ -30,7 +30,7 @@
                     @* <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Refresh" Color="Color.Primary" FullWidth="true">刷新项目列表</MudButton> *@
                 </MudSelect>
             </MudItem>
-            <MudItem sm="6" xs="12">
+            <MudItem xs="12">
                 @if (!string.IsNullOrWhiteSpace(SelectCLEInfoValue.Id))
                 {
                     <MudSelect T="NewCLEMap"
@@ -50,20 +50,20 @@
         @if (!string.IsNullOrWhiteSpace(SelectCLEMapValue.Id))
         {
             <MudGrid Justify="Justify.FlexStart">
-                <MudItem xxl="3" xl="3" lg="3" md="4" sm="4" xs="12">
+                <MudItem xs="12">
                     <MudSwitch LabelPosition="LabelPosition.End" Label="显示XY坐标轴" Checked="EnableAxis" Color="Color.Primary" T="bool" CheckedChanged="((e)=>UpdateEnableAxis.InvokeAsync(e))" />
                 </MudItem>
-                <MudItem xxl="3" xl="3" lg="3" md="4" sm="4" xs="12">
+                <MudItem xs="12">
                     <MudSwitch LabelPosition="LabelPosition.End" Label="显示区域" Checked="EnableArea" Color="Color.Primary" T="bool" CheckedChanged="((e)=>UpdateEnableArea.InvokeAsync(e))" />
                 </MudItem>
-                <MudItem xxl="3" xl="3" lg="3" md="4" sm="4" xs="12">
+                <MudItem xs="12">
                     <MudSwitch LabelPosition="LabelPosition.End" Label="显示区域名称" Checked="EnableAreaName" Color="Color.Primary" T="bool" CheckedChanged="((e)=>UpdateEnableAreaName.InvokeAsync(e))" />
                 </MudItem>
             </MudGrid>
             <MudTabs Elevation="2" Centered="true" Rounded="true" ApplyEffectsToContainer="true">
                 <MudTabPanel Text="轨迹" Icon="@Icons.Material.Filled.Polyline">
                     <MudGrid>
-                        <MudItem sm="6" xs="12">
+                        <MudItem xs="12">
                             <MudSelect T="CLEBeaconTrailSearchType"
                                        Label="轨迹类型"
                                        @bind-Value="SearchType4TrackValue"
@@ -76,7 +76,7 @@
                                 }
                             </MudSelect>
                         </MudItem>
-                        <MudItem sm="6" xs="12">
+                        <MudItem xs="12">
                             @if (SearchType4TrackValue == CLEBeaconTrailSearchType.BeaconMac)
                             {
                                 <MudSelect T="string"
@@ -105,19 +105,19 @@
                     @if (!EnableTrackUpdate)
                     {
                         <MudGrid Justify="Justify.FlexStart">
-                            <MudItem xxl="3" xl="3" lg="3" md="3" sm="5" xs="5">
+                            <MudItem  xs="5">
                                 <MudDatePicker Label="开始日期" @bind-Date="StartDate" />
                             </MudItem>
-                            <MudItem xxl="2" xl="2" lg="2" md="2" sm="5" xs="5">
+                            <MudItem  xs="5">
                                 <MudTimePicker Label="开始时间" @bind-Time="StartTime" />
                             </MudItem>
-                            <MudItem xxl="3" xl="3" lg="3" md="2" sm="5" xs="5">
+                            <MudItem xs="5">
                                 <MudDatePicker Label="结束日期" @bind-Date="EndDate" />
                             </MudItem>
-                            <MudItem xxl="2" xl="2" lg="2" md="2" sm="5" xs="5">
+                            <MudItem  xs="5">
                                 <MudTimePicker Label="结束时间" @bind-Time="EndTime" />
                             </MudItem>
-                            <MudItem xxl="2" xl="2" lg="2" md="2" sm="2" xs="2">
+                            <MudItem  xs="2">
                                 <MudFab StartIcon="@Icons.Material.Filled.Search" Color="Color.Primary" OnClick="GetTrackData"></MudFab>
                             </MudItem>
                         </MudGrid>
@@ -125,7 +125,7 @@
                     @if (SearchType4TrackValue == CLEBeaconTrailSearchType.AwbNo)
                     {
                         <MudGrid>
-                            <MudItem sm="6" xs="12">
+                            <MudItem xs="12">
                                 <MudSelect T="CLEBeaconTrailSearchType"
                                            @bind-Value="SearchType4TrackGroupValue"
                                            Label="子轨迹类型"
@@ -138,7 +138,7 @@
                                     }
                                 </MudSelect>
                             </MudItem>
-                            <MudItem sm="6" xs="12">
+                            <MudItem xs="12">
                                 <MudSelect T="string"
                                            @bind-Value="TrackGroupValue"
                                            Label="具体轨迹"
@@ -155,14 +155,35 @@
                         </MudGrid>
                     }
                 </MudTabPanel>
-                <MudTabPanel Text="位置" Icon="@Icons.Material.Filled.MyLocation">
-                    <MudText>Content Two</MudText>
+                <MudTabPanel Text="位置" Icon="@Icons.Material.Filled.MyLocation">                    
+                    <MudGrid>
+                        <MudItem xs="12">
+                            <MudSelect T="CLEBeaconTrailSearchType"
+                                        @bind-Value="SearchType4PositionValue"
+                                        Label="位置类型"
+                                        Variant="Variant.Filled"
+                                        AnchorOrigin="Origin.BottomCenter"
+                                        SelectedValuesChanged="@((e)=>JSRuntime.ConsoleDebug(e))">
+                                @foreach (var positionOption in SearchType4PositionOptions)
+                                {
+                                    <MudSelectItem Value="@(positionOption.Value)">@(positionOption.Key)</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12">
+                             <MudTextField @bind-Value="SearchText4Position" Label="具体号码" Placeholder="具体的号码，不支持模糊搜索" Variant="Variant.Filled" OnBlur="InitPositionGroupData"></MudTextField>
+                        </MudItem>
+                    </MudGrid>
                 </MudTabPanel>
             </MudTabs>
         }
     </MudCardContent>
     <MudCardActions>
-        <MudButton StartIcon="@Icons.Material.Filled.Close" Variant="Variant.Filled" Color="Color.Secondary" OnClick="@(()=>{_=UpdateShow.InvokeAsync(false).ConfigureAwait(false);})">关闭</MudButton>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudButton StartIcon="@Icons.Material.Filled.Close" Variant="Variant.Filled" Color="Color.Secondary" OnClick="@(()=>{_=UpdateShow.InvokeAsync(false);})">关闭</MudButton>
+           </MudItem>
+        </MudGrid>
     </MudCardActions>
 </MudCard>
 
@@ -180,9 +201,9 @@
     [Parameter]
     public EventCallback<NewCLEInfo> UpdateCLEInfo { get; set; }
     [Parameter]
-    public EventCallback<NewCLEMap> UpdateCLEMap { get; set; }
-    [Parameter]
-    public EventCallback<string> UpdateCLEMapImage { get; set; }
+    public EventCallback<Tuple<NewCLEMap, string>> UpdateCLEMap { get; set; }
+    // [Parameter]
+    // public EventCallback<string> UpdateCLEMapImage { get; set; }
     [Parameter]
     public EventCallback<bool> UpdateEnableAxis { get; set; }
     [Parameter]
@@ -329,7 +350,7 @@
         {
             _isLoading = value;
             Console.WriteLine(value);
-            _ = InvokeAsync(StateHasChanged);
+            InvokeAsync(StateHasChanged);
         }
     }
 
@@ -364,14 +385,14 @@
         SelectCLEMapOptions.Clear();
         await LocalStorageService.RemoveItemsAsync(
             [nameof(NewCLEInfo), nameof(NewCLEInfo) + "List", nameof(NewCLEMap), nameof(NewCLEMap) + "List", "CLEMapImage"]
-        ).ConfigureAwait(false);
+        );
         IsLoading = true;
-        List<NewCLEInfo>? result = await IndexApiService.GetCLEInfo().ConfigureAwait(false);
+        List<NewCLEInfo>? result = await IndexApiService.GetCLEInfo();
         foreach (NewCLEInfo info in result)
         {
             SelectCLEInfoOptions.Add(info.Name, info);
         }
-        await LocalStorageService.SetItemAsync<List<NewCLEInfo>>(nameof(NewCLEInfo) + "List", result).ConfigureAwait(false);
+        await LocalStorageService.SetItemAsync<List<NewCLEInfo>>(nameof(NewCLEInfo) + "List", result);
         IsLoading = false;
     }
 
@@ -390,19 +411,19 @@
         }
         SelectCLEMapOptions.Clear();
         SelectCLEMapValue = new();
-        await UpdateCLEInfo.InvokeAsync(info).ConfigureAwait(false);
-        await LocalStorageService.SetItemAsync<NewCLEInfo>(nameof(NewCLEInfo), info).ConfigureAwait(false);
+        await UpdateCLEInfo.InvokeAsync(info);
+        await LocalStorageService.SetItemAsync<NewCLEInfo>(nameof(NewCLEInfo), info);
         await LocalStorageService.RemoveItemsAsync(
             [nameof(NewCLEMap), nameof(NewCLEMap) + "List", "CLEMapImage"]
-        ).ConfigureAwait(false);
+        );
 
         IsLoading = true;
-        List<NewCLEMap>? result = await IndexApiService.GetCLEMaps(info.Id).ConfigureAwait(false);
+        List<NewCLEMap>? result = await IndexApiService.GetCLEMaps(info.Id);
         foreach (NewCLEMap cleMap in result)
         {
             SelectCLEMapOptions.Add(cleMap.Name, cleMap);
         }
-        await LocalStorageService.SetItemAsync<List<NewCLEMap>>(nameof(NewCLEMap) + "List", result).ConfigureAwait(false);
+        await LocalStorageService.SetItemAsync<List<NewCLEMap>>(nameof(NewCLEMap) + "List", result);
 
         IsLoading = false;
     }
@@ -416,13 +437,13 @@
         if (map is null || string.IsNullOrWhiteSpace(map.Id)) return;
         IsLoading = true;
 
-        await LocalStorageService.SetItemAsync<NewCLEMap>(nameof(NewCLEMap), map).ConfigureAwait(false);
-        await LocalStorageService.RemoveItemAsync("CLEMapImage").ConfigureAwait(false);
-        string cleMapImage = await IndexApiService.GetCLEMapImage(map.Id).ConfigureAwait(false);
-        await LocalStorageService.SetItemAsStringAsync("CLEMapImage", cleMapImage).ConfigureAwait(false);
+        await LocalStorageService.SetItemAsync<NewCLEMap>(nameof(NewCLEMap), map);
+        await LocalStorageService.RemoveItemAsync("CLEMapImage");
+        string cleMapImage = await IndexApiService.GetCLEMapImage(map.Id);
+        await LocalStorageService.SetItemAsStringAsync("CLEMapImage", cleMapImage);
 
-        await UpdateCLEMap.InvokeAsync(map).ConfigureAwait(false);
-        await UpdateCLEMapImage.InvokeAsync(cleMapImage).ConfigureAwait(false);
+        await UpdateCLEMap.InvokeAsync(new(map, cleMapImage));
+        // await UpdateCLEMapImage.InvokeAsync(cleMapImage);
 
         IsLoading = false;
     }
@@ -437,17 +458,17 @@
     private async void InitCLEBeaconList()
     {
         SearchText4Track = string.Empty;
-        await UpdateSearchType4TrackValue.InvokeAsync(SearchType4TrackValue).ConfigureAwait(false);
+        await UpdateSearchType4TrackValue.InvokeAsync(SearchType4TrackValue);
         if (SearchType4TrackValue != CLEBeaconTrailSearchType.BeaconMac) return;
-        await LocalStorageService.RemoveItemsAsync([nameof(CLEBeacon), nameof(CLEBeacon) + "List"]).ConfigureAwait(false);
+        await LocalStorageService.RemoveItemsAsync([nameof(CLEBeacon), nameof(CLEBeacon) + "List"]);
         SelectCLEBeaconOptions.Clear();
         IsLoading = true;
-        List<string>? result = await IndexApiService.GetBeaconList().ConfigureAwait(false);
+        List<string>? result = await IndexApiService.GetBeaconList();
         foreach (string mac in result)
         {
             SelectCLEBeaconOptions.Add(mac, mac);
         }
-        await LocalStorageService.SetItemAsync<List<string>>(nameof(CLEBeacon) + "List", result).ConfigureAwait(false);
+        await LocalStorageService.SetItemAsync<List<string>>(nameof(CLEBeacon) + "List", result);
         IsLoading = false;
     }
 
@@ -471,11 +492,11 @@
         IsLoading = true;
         if (EnableTrackUpdate)
         {
-            TrackJson = await IndexApiService.GetCLEBeaconLastTrail(SearchType4TrackValue, SearchText4Track, SelectCLEMapValue.Id).ConfigureAwait(false);
+            TrackJson = await IndexApiService.GetCLEBeaconLastTrail(SearchType4TrackValue, SearchText4Track, SelectCLEMapValue.Id);
         }
         else
         {
-            TrackJson = await IndexApiService.GetCLEBeaconTrail(SearchType4TrackValue, SearchText4Track, SelectCLEMapValue.Id, (StartDate ?? DateTime.Today).AddTicks((StartTime ?? TimeSpan.Zero).Ticks), (EndDate ?? DateTime.Today.AddDays(1)).AddTicks((EndTime ?? TimeSpan.Zero).Ticks)).ConfigureAwait(false);
+            TrackJson = await IndexApiService.GetCLEBeaconTrail(SearchType4TrackValue, SearchText4Track, SelectCLEMapValue.Id, (StartDate ?? DateTime.Today).AddTicks((StartTime ?? TimeSpan.Zero).Ticks), (EndDate ?? DateTime.Today.AddDays(1)).AddTicks((EndTime ?? TimeSpan.Zero).Ticks));
         }
         LastSearchText4Track = SearchText4Track;
         InitTrackGroupData();
@@ -570,25 +591,26 @@
                     break;
             }
         }
-        trackJsonTemp.Select((g) =>
-           {
-               var trackList = g.ToList();
-               if (trackList.Count > MaxPointLength)
-               {
-                   // 移除一半，以便保持数据量在合理范围（即：不会一下子移除maxPointLength个点位，让本来1001个点位一下子变成1个点位，而是变成501个点位）
-                   var removeCount = trackList.Count - MaxPointLength / 2;
-                   trackListHadRemoved = trackList.GetRange(0, removeCount);
-                   trackList.RemoveRange(0, removeCount);
-               }
-               TrackGroup[g.Key] = trackList;
-               return g;
-           });
+        trackJsonTemp.ToList().ForEach((g) =>
+        {
+            var trackList = g.ToList();
+            if (trackList.Count > MaxPointLength)
+            {
+                // 移除一半，以便保持数据量在合理范围（即：不会一下子移除maxPointLength个点位，让本来1001个点位一下子变成1个点位，而是变成501个点位）
+                var removeCount = trackList.Count - MaxPointLength / 2;
+                trackListHadRemoved = trackList.GetRange(0, removeCount);
+                trackList.RemoveRange(0, removeCount);
+            }
+            TrackGroup[g.Key] = trackList;
+            // return g;
+        });
 
         List<NewCLETrack> filteredTrackJson = TrackJson.Where(item => !trackListHadRemoved.Any(removedElements => removedElements == item)).ToList();
 
         TrackJson = filteredTrackJson;
 
-        await UpdateTrack.InvokeAsync(TrackGroup).ConfigureAwait(false);
+        await UpdateTrack.InvokeAsync(TrackGroup);
+        JSRuntime.ConsoleDebug("TrackGroup", TrackGroup);
     }
 
     #endregion
@@ -607,10 +629,10 @@
         PositionGroup.Clear();
         TrackGroupOptions.Clear();
         TrackGroupValue = string.Empty;
-        await UpdateSearchType4PositionValue.InvokeAsync(SearchType4PositionValue).ConfigureAwait(false);
+        await UpdateSearchType4PositionValue.InvokeAsync(SearchType4PositionValue);
         IsLoading = true;
         // 获取所有CLE信标位置
-        var result = await IndexApiService.GetAllCLEBeaconPosition(SearchType4PositionValue, SearchText4Position, SelectCLEMapValue.Id).ConfigureAwait(false);
+        var result = await IndexApiService.GetAllCLEBeaconPosition(SearchType4PositionValue, SearchText4Position, SelectCLEMapValue.Id);
         LastSearchText4Position = SearchText4Position;
         PositionJson = result;
         GetPositionGroupData();
@@ -644,7 +666,7 @@
         }
         positionJsonTemp.ToList().ForEach(x => PositionGroup[x.Key] = x.ToList());
 
-        await UpdatePosition.InvokeAsync(PositionGroup).ConfigureAwait(false);
+        await UpdatePosition.InvokeAsync(PositionGroup);
     }
 
     #endregion

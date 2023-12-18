@@ -4,8 +4,11 @@
     @* <MudNavLink Href="/map/area" Match="NavLinkMatch.Prefix">@(Resources.区域 + Resources.管理)</MudNavLink>
     <MudNavLink Href="/ULDDispatch" Match="NavLinkMatch.Prefix">@Resources.ULD查找监控</MudNavLink>
     <MudNavGroup Title="@(Resources.管理)" Expanded="true">
-        <MudNavLink Href="/admin/users" Match="NavLinkMatch.Prefix">@(Resources.用户 + Resources.管理)</MudNavLink>
-        <MudNavLink Href="/admin/roles" Match="NavLinkMatch.Prefix">@(Resources.角色 + Resources.管理)</MudNavLink>
+    <MudNavLink Href="/admin/users" Match="NavLinkMatch.Prefix">@(Resources.用户 + Resources.管理)</MudNavLink>
+    <MudNavLink Href="/admin/roles" Match="NavLinkMatch.Prefix">@(Resources.角色 + Resources.管理)</MudNavLink>
     </MudNavGroup> *@
     <MudNavLink Href="/weather" Match="NavLinkMatch.Prefix">weather</MudNavLink>
+    <MudNavGroup Title="DEV" Expanded="true" Icon="@Icons.Material.Filled.DeveloperBoard">
+        <MudNavLink Href="/dev/colorlist" Match="NavLinkMatch.Prefix">Color List</MudNavLink>
+    </MudNavGroup>
 </MudNavMenu>

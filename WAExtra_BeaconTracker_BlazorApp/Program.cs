@@ -1,10 +1,11 @@
 using Blazored.LocalStorage;
-using ItrackerAdminBlazorApp.Services;
+using FisSst.BlazorMaps.DependencyInjection;
 using MudBlazor.Services;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using WAExtra_BeaconTracker_BlazorApp.Client.Pages;
 using WAExtra_BeaconTracker_BlazorApp.Components;
+using WAExtra_BeaconTracker_BlazorApp.Services;
 using WAExtra_BeaconTracker_BlazorApp.Services.ApiServices;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,11 +15,12 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
 builder.Services.AddMudServices();
+builder.Services.AddBlazorLeafletMaps();
 builder.Services.AddHttpClient();
 //builder.Services.AddScoped(sp => new HttpClient() { BaseAddress = new Uri("") });
-builder.Services.AddTransient<IndexApiService>();
-builder.Services.AddTransient<ThemeInterop>();
-builder.Services.AddTransient<IThemeInterop>(i => i.GetRequiredService<ThemeInterop>());
+builder.Services.AddScoped<IndexApiService>();
+builder.Services.AddScoped<ThemeInterop>();
+builder.Services.AddScoped<IThemeInterop>(i => i.GetRequiredService<ThemeInterop>());
 builder.Services.AddBlazoredLocalStorage(config =>
 {
     config.JsonSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;

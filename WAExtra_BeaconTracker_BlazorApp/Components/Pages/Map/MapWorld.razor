@@ -1,0 +1,217 @@
+﻿@using ModelLibrary.CLEModels
+@using WAExtra_BeaconTracker_BlazorApp.Models.NewCLEModels
+@implements IAsyncDisposable
+@inject IJSRuntime JSRuntime
+@inject IThemeInterop ThemeInterop;
+
+<MudPaper Style="overflow:hidden; position:relative;">
+    <MudDrawerContainer>
+        <MudDrawer @bind-Open="@ShowOption" Width="600px" Fixed="false" Anchor="Anchor.Right" Elevation="1" Variant="DrawerVariant.Temporary">
+            <MapSetting
+                UpdateShow="@((e)=>ShowOption = e)"               
+                UpdateCLEInfo="@((cleInfo)=>CLEInfoData = cleInfo)"
+                UpdateCLEMap="@((tupleCLEMap)=>{CLEMapData = tupleCLEMap.Item1; CLEMapImage = tupleCLEMap.Item2;})"
+                EnableAxis="EnableAxis"
+                UpdateEnableAxis="@((e)=>EnableAxis = e)"
+                EnableArea="EnableArea"
+                UpdateEnableArea="@((e)=>EnableArea=e)"
+                EnableAreaName="EnableAreaName"
+                UpdateEnableAreaName="@((e)=>EnableAreaName=e)"
+                EnableTrackUpdate="EnableTrackUpdate"
+                UpdateEnableTrackUpdate="@((e)=>EnableTrackUpdate=e)"
+                UpdateSearchType4TrackValue="@((e)=>SearchType4TrackValue=e)"
+                UpdateSearchType4PositionValue="@((e)=>SearchType4PositionValue=e)"
+                UpdateTrack="@((e)=>TrackGroupData=e)"
+                UpdatePosition="@((e)=>PositionGroupData=e)">
+            </MapSetting>
+        </MudDrawer>
+        
+        <div class="fullPage" id="canvasBox">   
+            <MudButton Class="leaflet-top leaflet-right custom-control" Style="pointer-events: auto" OnClick="@(()=>ShowOption=!ShowOption)" Variant="Variant.Filled" Color="Color.Primary">设置</MudButton>
+            @ChildContent
+        </div>
+    </MudDrawerContainer>
+</MudPaper>
+
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private bool _showOption;
+    private bool _enableAxis;
+    private bool _enableArea = true;
+    private bool _enableAreaName = true;
+    private bool _enableTrackUpdate = false;
+    private NewCLEInfo _cleInfoData = new();
+    private NewCLEMap _cleMapData = new();
+    private string _cleMapImage = string.Empty;
+    private SortedDictionary<string, List<NewCLETrack>> _trackGroupData = new();
+    private SortedDictionary<string, List<NewCLETrack>> _positionGroupData = new();
+    private CLEBeaconTrailSearchType _searchType4TrackValue = CLEBeaconTrailSearchType.AwbNo;
+    private CLEBeaconTrailSearchType _searchType4PositionValue = CLEBeaconTrailSearchType.AwbNo;
+
+    private bool ShowOption
+    {
+        get { return _showOption; }
+        set { _showOption = value; }
+    }
+
+    private bool EnableAxis
+    {
+        get { return _enableAxis; }
+        set {
+            _enableAxis = value;        
+            _= MapWorldObject?.InvokeVoidAsync("UpdateAxis", value);
+        }
+    }
+
+    private bool EnableArea
+    {
+        get { return _enableArea; }
+        set {
+            _enableArea = value;
+            _= MapWorldObject?.InvokeVoidAsync("UpdateArea", value);
+        }
+    }
+
+    private bool EnableAreaName
+    {
+        get { return _enableAreaName; }
+        set { 
+            _enableAreaName = value;
+            _= MapWorldObject?.InvokeVoidAsync("UpdateAreaName", value);
+        }
+    }
+
+    private bool EnableTrackUpdate
+    {
+        get { return _enableTrackUpdate; }
+        set {
+            _enableTrackUpdate = value;
+            _= MapWorldObject?.InvokeVoidAsync("UpdateTrackUpdate", value);
+        }
+    }
+
+    private NewCLEInfo CLEInfoData
+    {
+        get { return _cleInfoData; }
+        set {
+            _cleInfoData = value;
+            // MapWorldObject?.InvokeAsync<IJSObjectReference>("Set", "ThemePlaceholderColor", "ThemePlaceholderColor");
+            // _= MapWorldObject?.InvokeVoidAsync("InitCLEInfo", value);
+        }
+    }
+
+    private NewCLEMap CLEMapData
+    {
+        get { return _cleMapData; }
+        set { 
+            _cleMapData = value; 
+            // 交由CLEMapImage来触发
+            // _= MapWorldObject?.InvokeVoidAsync("InitCLEMap", _cleMapData, _cleMapImage);
+        }
+    }
+
+    private string CLEMapImage
+    {
+        get { return _cleMapImage; }
+        set { 
+            _cleMapImage = value;
+            _= MapWorldObject?.InvokeVoidAsync("InitCLEMap", _cleMapData, _cleMapImage);
+        }
+    }
+
+    private SortedDictionary<string, List<NewCLETrack>> TrackGroupData
+    {
+        get { return _trackGroupData; }
+        set { 
+            _trackGroupData = value; 
+            _= MapWorldObject?.InvokeVoidAsync("initTrackGroupData", value);
+        }
+    }
+
+    private SortedDictionary<string, List<NewCLETrack>> PositionGroupData
+    {
+        get { return _positionGroupData; }
+        set { 
+            _positionGroupData = value;
+            _= MapWorldObject?.InvokeVoidAsync("initCargoPosition", value);
+        }
+    }
+
+    private CLEBeaconTrailSearchType SearchType4TrackValue
+    {
+        get { return _searchType4TrackValue; }
+        set { 
+            _searchType4TrackValue = value;
+            _= MapWorldObject?.InvokeAsync<IJSObjectReference>("Set", "SearchType4TrackValue", value);
+        }
+    }
+
+    private CLEBeaconTrailSearchType SearchType4PositionValue
+    {
+        get { return _searchType4PositionValue; }
+        set { 
+            _searchType4PositionValue = value;
+            _= MapWorldObject?.InvokeAsync<IJSObjectReference>("Set", "SearchType4PositionValue", value);
+        }
+    }
+
+    private IJSObjectReference? JSModule { get; set; }
+    private IJSObjectReference? MapWorldObject{ get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        JSRuntime.ConsoleDebug("MapWorld\t=>\tOnAfterRenderAsync:\t"+firstRender);
+        if (firstRender)
+        {
+            string systemTheme = await ThemeInterop.GetSystemTheme();
+            bool isDark = systemTheme.Equals("DARK", StringComparison.InvariantCultureIgnoreCase);
+
+            JSModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "/beacontrack-library/beacontrack-library.js");
+            JSRuntime.ConsoleInfo(JSModule);
+
+            MapWorldObject = await JSModule.InvokeAsync<IJSObjectReference>("InitMapWorld");
+            JSRuntime.ConsoleInfo(MapWorldObject);
+            await MapWorldObject.InvokeVoidAsync("UpdateTheme", isDark?"dark":"light", 0.1,0.2, !isDark?MudThemeManager._currentTheme.Palette.OverlayDark.ToString():MudThemeManager._currentTheme.Palette.OverlayLight.ToString());
+            await MapWorldObject.InvokeVoidAsync("UpdateAxis", EnableAxis);
+            await MapWorldObject.InvokeVoidAsync("UpdateArea", EnableArea);
+            await MapWorldObject.InvokeVoidAsync("UpdateAreaName", EnableAreaName);
+
+            await MapWorldObject.InvokeVoidAsync("onMounted");
+            ThemeInterop.ThemeChanged += ThemeChanged;
+        }
+        JSRuntime.ConsoleInfo(JSModule!);
+        JSRuntime.ConsoleInfo(MapWorldObject!);
+    }
+
+    private async void ThemeChanged(object? args,string themeName)
+    { 
+        JSRuntime.ConsoleInfo("MapWorld\t=>\tThemeChanged:\t"+themeName,args!);
+        if(MapWorldObject is null) return;
+        bool isDark = themeName.Equals("DARK", StringComparison.InvariantCultureIgnoreCase);
+        await MapWorldObject.InvokeVoidAsync("UpdateTheme", isDark?"dark":"light", 0.1,0.2, !isDark?MudThemeManager._currentTheme.Palette.OverlayDark.ToString():MudThemeManager._currentTheme.Palette.OverlayLight.ToString());                    
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        JSRuntime.ConsoleDebug("MapWorld\t=>\tDisposeAsync");
+        try
+        {
+            if (MapWorldObject is not null)
+            {
+                await MapWorldObject.InvokeVoidAsync("onBeforeUnmount");
+            }
+            if (JSModule is not null)
+            {
+                await JSModule.DisposeAsync();
+            }
+            ThemeInterop.ThemeChanged -= ThemeChanged;
+        }
+        catch(Exception ex)
+        {
+            JSRuntime.ConsoleError(ex);
+        }
+    }
+}

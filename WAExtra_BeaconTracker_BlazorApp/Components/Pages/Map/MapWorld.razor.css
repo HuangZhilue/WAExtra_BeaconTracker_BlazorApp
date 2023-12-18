@@ -1,0 +1,90 @@
+﻿.fullPage {
+    width: calc(100vw);
+    height: calc( 100vh - 64px );
+    overflow: hidden;
+    background-color: var(--mud-palette-background);
+}
+
+::deep .areaName {
+    background-color: transparent;
+    color: var(--mud-palette-text-primary);
+    border: none;
+    box-shadow: none;
+}
+
+::deep .leaflet-bottom.leaflet-right .leaflet-control-attribution.leaflet-control a {
+    display: none;
+}
+
+::deep .custom-control {
+    margin-top: 10px;
+    margin-right: 10px;
+    margin-left: 10px;
+}
+
+    ::deep .custom-control button {
+        padding: 1px 6px;
+    }
+
+::deep .areaPolygon {
+    stroke-width: 5px;
+}
+
+::deep .cargoArea {
+    stroke-width: 0;
+}
+
+::deep .marker-icon .marker-count {
+    position: absolute;
+    bottom: 20px;
+    left: -31px;
+    height: 22px;
+    width: -moz-fit-content;
+    width: fit-content;
+    background-color: var(--mud-palette-text-primary);
+    color: var(--mud-palette-background);
+    font-size: 24px;
+    white-space: nowrap;
+    line-height: 24px;
+    padding-left: 3px;
+    padding-right: 3px;
+}
+
+::deep .marker-icon .marker-text {
+    position: absolute;
+    bottom: 12px;
+    left: 3px;
+    height: 30px;
+    width: -moz-fit-content;
+    width: fit-content;
+    background-color: var(--mud-palette-text-primary);
+    color: var(--mud-palette-background);
+    font-size: 24px;
+    white-space: nowrap;
+    padding-left: 3px;
+    padding-right: 3px;
+}
+
+::deep .marker-icon img {
+    position: absolute;
+    bottom: 12px;
+    left: -12px;
+    height: 30px;
+    width: 30px;
+}
+
+::deep .marker-track-icon img {
+    position: absolute;
+    bottom: 12px;
+    left: -12px;
+    height: 50px;
+    width: 50px;
+}
+
+::deep .marker-updateTrack-icon img {
+    position: absolute;
+    bottom: -5px;
+    left: -18px;
+    height: 35px;
+    width: 35px;
+}

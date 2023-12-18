@@ -1,0 +1,13 @@
+﻿::deep .color-item {
+    min-height: 75px;
+}
+
+.colorName {
+    background-color: black;
+    color: white;
+}
+
+.colorString {
+    background-color: rgba(0, 0, 0, 0.35);
+    color: white;
+}

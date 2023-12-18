@@ -1,0 +1,28 @@
+{
+  "name": "beacontrack-library",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "buildLib": "pnpm run build",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@rollup/rollup-win32-x64-msvc": "^4.8.0",
+    "@rushstack/eslint-patch": "^1.6.0",
+    "@types/chroma-js": "^2.4.3",
+    "@types/leaflet": "^1.9.8",
+    "eslint": "^8.55.0",
+    "eslint-config-prettier": "^8.10.0",
+    "eslint-plugin-prettier": "^5.0.1",
+    "prettier": "^3.1.1",
+    "typescript": "~5.2.2",
+    "vite": "^5.0.8"
+  },
+  "dependencies": {
+    "chroma-js": "^2.4.2",
+    "leaflet": "^1.9.4"
+  }
+}

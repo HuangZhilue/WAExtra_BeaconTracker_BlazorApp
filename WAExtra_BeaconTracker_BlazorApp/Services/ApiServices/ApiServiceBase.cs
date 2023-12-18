@@ -1,8 +1,9 @@
-﻿using ItrackerAdminBlazorApp.Services;
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using MudBlazor;
 using System.Net;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using WAExtra_BeaconTracker_BlazorApp.Models;
 
 namespace WAExtra_BeaconTracker_BlazorApp.Services.ApiServices;
@@ -14,6 +15,14 @@ public class ApiServiceBase(IServiceProvider service)
     internal NavigationManager NavigationManager { get; } = service.GetRequiredService<NavigationManager>();
     internal ISnackbar Snackbar { get; } = service.GetRequiredService<ISnackbar>();
     internal IJSRuntime JSRuntime { get; } = service.GetRequiredService<IJSRuntime>();
+
+    internal JsonSerializerOptions JsonSerializerOptions { get; } = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = null,//JsonNamingPolicy.CamelCase,
+        //NumberHandling = JsonNumberHandling.AllowReadingFromString,
+        Converters = { new JsonStringEnumConverter() }
+    };
 
     internal void HttpError(HttpRequestException exception)
     {
@@ -50,7 +59,7 @@ public class ApiServiceBase(IServiceProvider service)
 
             if (response.StatusCode == HttpStatusCode.BadRequest)
             {
-                BadRequestInterfaceResult? error = await response.Content.ReadFromJsonAsync<BadRequestInterfaceResult>();
+                BadRequestInterfaceResult? error = await response.Content.ReadFromJsonAsync<BadRequestInterfaceResult>(JsonSerializerOptions);
                 JSRuntime.ConsoleError(error);
 
                 Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
@@ -88,7 +97,7 @@ public class ApiServiceBase(IServiceProvider service)
 
             if (response.StatusCode == HttpStatusCode.BadRequest)
             {
-                BadRequestInterfaceResult? error = await response.Content.ReadFromJsonAsync<BadRequestInterfaceResult>();
+                BadRequestInterfaceResult? error = await response.Content.ReadFromJsonAsync<BadRequestInterfaceResult>(JsonSerializerOptions);
                 JSRuntime.ConsoleError(error);
 
                 Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;

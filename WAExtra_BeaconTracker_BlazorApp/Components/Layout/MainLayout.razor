@@ -1,5 +1,4 @@
-﻿@using ItrackerAdminBlazorApp.Services;
-@inject IJSRuntime JSRuntime;
+﻿@inject IJSRuntime JSRuntime;
 @inject IThemeInterop ThemeInterop;
 
 @inherits LayoutComponentBase
@@ -11,18 +10,19 @@
 <MudLayout>
     <MudAppBar Elevation="1">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
-        <MudText Typo="Typo.h5" Class="ml-3">Application</MudText>
+        <MudText Typo="Typo.h5" Class="ml-3">PageTitle</MudText>
         <MudSpacer />
         <MudIconButton Icon="@(IsDarkTheme ? Icons.Material.Outlined.DarkMode : Icons.Material.Outlined.LightMode)" Color="Color.Inherit" Edge="Edge.End" OnClick="SwitchTheme" />
     </MudAppBar>
-    <MudDrawer @bind-Open="DrawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+    <MudDrawer @bind-Open="DrawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2" Variant="@DrawerVariant.Temporary">
         <NavMenu />
     </MudDrawer>
     <MudMainContent>
         @Body
     </MudMainContent>
-    <MudThemeManagerButton OnClick="@((e) => OpenThemeManager(true))" />
-    <MudThemeManager Open="ThemeManagerOpen" OpenChanged="OpenThemeManager" Theme="_themeManager" ThemeChanged="UpdateTheme" />
+    @* <MudThemeManagerButton OnClick="@((e) => OpenThemeManager(true))" />
+    <MudThemeManager Open="ThemeManagerOpen" OpenChanged="OpenThemeManager" Theme="_themeManager" ThemeChanged="UpdateTheme" /> *@
+    <MudThemeManager Theme="_themeManager" />
 </MudLayout>
 
 <div id="blazor-error-ui">
@@ -40,7 +40,7 @@
         if (isFirstRender)
         {
             // 获取系统主题
-            string systemTheme = await ThemeInterop.GetSystemTheme(JSRuntime);
+            string systemTheme = await ThemeInterop.GetSystemTheme();
             IsDarkTheme = systemTheme.Equals("DARK", StringComparison.InvariantCultureIgnoreCase);
             ThemeInterop.SetSystemTheme(IsDarkTheme);
             StateHasChanged();

@@ -1,15 +1,16 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AssemblyVersion>1.0.116.0902</AssemblyVersion>
-    <FileVersion>1.0.116.0902</FileVersion>
+    <AssemblyVersion>1.0.305.0131</AssemblyVersion>
+    <FileVersion>1.0.305.0131</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
 	<PackageReference Include="Blazored.LocalStorage" Version="4.4.0" />
+	<PackageReference Include="FisSst.BlazorMaps" Version="1.0.1" />
 	<PackageReference Include="MudBlazor" Version="6.11.1" />
 	<PackageReference Include="MudBlazor.ThemeManager" Version="1.0.8" />
     <ProjectReference Include="..\WAExtra_BeaconTracker_BlazorApp.Client\WAExtra_BeaconTracker_BlazorApp.Client.csproj" />
@@ -21,5 +22,17 @@
       <HintPath>C:\Users\huang\source\repos\CargoLocationCore\Models\ModelLibrary\bin\Debug\net8.0\ModelLibrary.dll</HintPath>
     </Reference>
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="NpmJS\" />
+    <Folder Include="NpmJS\BeaconTrack-Library\src\" />
+  </ItemGroup>
+
+  <ProjectExtensions><VisualStudio><UserProperties /></VisualStudio></ProjectExtensions>
+
+  <!--<Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="pnpm install" WorkingDirectory="NpmJS/BeaconTrack-Library" />
+    <Exec Command="pnpm run build" WorkingDirectory="NpmJS/BeaconTrack-Library" />
+  </Target>-->
 
 </Project>
