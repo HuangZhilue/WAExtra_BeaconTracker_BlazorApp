@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace WAExtra_BeaconTracker_BlazorApp.Models.NewCLEModels;
+namespace WAExtra_BeaconTracker_BlazorApp.Models;
 
 public static class NewBoolString
 {

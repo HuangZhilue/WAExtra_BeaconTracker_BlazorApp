@@ -10,7 +10,6 @@ namespace WAExtra_BeaconTracker_BlazorApp.Services.ApiServices;
 
 public class ApiServiceBase(IServiceProvider service)
 {
-    protected string BaseURL_CLE { get; set; } = "http://192.168.25.100:8001";
     internal IHttpClientFactory ClientFactory { get; } = service.GetRequiredService<IHttpClientFactory>();
     internal NavigationManager NavigationManager { get; } = service.GetRequiredService<NavigationManager>();
     internal ISnackbar Snackbar { get; } = service.GetRequiredService<ISnackbar>();
@@ -53,14 +52,14 @@ public class ApiServiceBase(IServiceProvider service)
             if (response.IsSuccessStatusCode)
             {
                 result = await response.Content.ReadFromJsonAsync<T>();
-                JSRuntime.ConsoleDebug(result);
+                JSRuntime.ConsoleDebug(result!);
                 return result;
             }
 
             if (response.StatusCode == HttpStatusCode.BadRequest)
             {
                 BadRequestInterfaceResult? error = await response.Content.ReadFromJsonAsync<BadRequestInterfaceResult>(JsonSerializerOptions);
-                JSRuntime.ConsoleError(error);
+                JSRuntime.ConsoleError(error!);
 
                 Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
                 Snackbar.Add(error?.Message, Severity.Error);
@@ -91,14 +90,14 @@ public class ApiServiceBase(IServiceProvider service)
             if (response.IsSuccessStatusCode)
             {
                 result = await response.Content.ReadAsStringAsync();
-                JSRuntime.ConsoleDebug(result);
+                JSRuntime.ConsoleDebug(result!);
                 return result;
             }
 
             if (response.StatusCode == HttpStatusCode.BadRequest)
             {
                 BadRequestInterfaceResult? error = await response.Content.ReadFromJsonAsync<BadRequestInterfaceResult>(JsonSerializerOptions);
-                JSRuntime.ConsoleError(error);
+                JSRuntime.ConsoleError(error!);
 
                 Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
                 Snackbar.Add(error?.Message, Severity.Error);
@@ -118,45 +117,152 @@ public class ApiServiceBase(IServiceProvider service)
         return result;
     }
 
-    //internal async Task<T?> PostFromJsonAsync<T>(string url, MultipartFormDataContent formData) where T : class
-    //{
-    //    T? result = default;
-    //    try
-    //    {
-    //        using HttpResponseMessage response = await HttpClient.PostAsync(url, formData).ConfigureAwait(false);
-    //        result = await response.Content.ReadFromJsonAsync<T>();
-    //    }
-    //    catch (HttpRequestException ex)
-    //    {
-    //        HttpError(ex);
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
-    //        Snackbar.Add(ex.Message, Severity.Error);
-    //    }
-    //    return result;
-    //}
+    internal async Task<T?> PostFromJsonAsync<T>(string url, MultipartFormDataContent formData) where T : class
+    {
+        T? result = default;
+        try
+        {
+            var client = ClientFactory.CreateClient();
+            using HttpResponseMessage response = await client.PostAsync(url, formData).ConfigureAwait(false);
 
-    //internal async Task<T?> PostFromJsonAsync<T, U>(string url, U bodyData)
-    //    where T : class
-    //    where U : class
-    //{
-    //    T? result = default;
-    //    try
-    //    {
-    //        using HttpResponseMessage response = await HttpClient.PostAsJsonAsync(url, bodyData).ConfigureAwait(false);
-    //        result = await response.Content.ReadFromJsonAsync<T>();
-    //    }
-    //    catch (HttpRequestException ex)
-    //    {
-    //        HttpError(ex);
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
-    //        Snackbar.Add(ex.Message, Severity.Error);
-    //    }
-    //    return result;
-    //}
+            if (response.IsSuccessStatusCode)
+            {
+                result = await response.Content.ReadFromJsonAsync<T>();
+                JSRuntime.ConsoleDebug(result!);
+                return result;
+            }
+
+            if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                BadRequestInterfaceResult? error = await response.Content.ReadFromJsonAsync<BadRequestInterfaceResult>(JsonSerializerOptions);
+                JSRuntime.ConsoleError(error!);
+
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add(error?.Message, Severity.Error);
+                return result;
+            }
+            throw new HttpRequestException(response.StatusCode.ToString());
+        }
+        catch (HttpRequestException ex)
+        {
+            HttpError(ex);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        return result;
+    }
+
+    internal async Task PostAsync(string url, MultipartFormDataContent formData)
+    {
+        try
+        {
+            var client = ClientFactory.CreateClient();
+            using HttpResponseMessage response = await client.PostAsync(url, formData).ConfigureAwait(false);
+
+            if (response.IsSuccessStatusCode)
+            {
+                JSRuntime.ConsoleDebug(url, response.StatusCode);
+                return;
+            }
+
+            if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                BadRequestInterfaceResult? error = await response.Content.ReadFromJsonAsync<BadRequestInterfaceResult>(JsonSerializerOptions);
+                JSRuntime.ConsoleError(error!);
+
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add(error?.Message, Severity.Error);
+                return;
+            }
+            throw new HttpRequestException(response.StatusCode.ToString());
+        }
+        catch (HttpRequestException ex)
+        {
+            HttpError(ex);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    internal async Task<T?> PostFromJsonAsync<T, U>(string url, U bodyData)
+        where T : class
+        where U : class
+    {
+        T? result = default;
+        try
+        {
+            var client = ClientFactory.CreateClient();
+            using HttpResponseMessage response = await client.PostAsJsonAsync(url, bodyData).ConfigureAwait(false);
+
+            if (response.IsSuccessStatusCode)
+            {
+                result = await response.Content.ReadFromJsonAsync<T>();
+                JSRuntime.ConsoleDebug(result!);
+                return result;
+            }
+
+            if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                BadRequestInterfaceResult? error = await response.Content.ReadFromJsonAsync<BadRequestInterfaceResult>(JsonSerializerOptions);
+                JSRuntime.ConsoleError(error!);
+
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add(error?.Message, Severity.Error);
+                return result;
+            }
+            throw new HttpRequestException(response.StatusCode.ToString());
+        }
+        catch (HttpRequestException ex)
+        {
+            HttpError(ex);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        return result;
+    }
+
+    internal async Task PostAsync<T>(string url, T bodyData)
+        where T : class
+    {
+        try
+        {
+            var client = ClientFactory.CreateClient();
+            using HttpResponseMessage response = await client.PostAsJsonAsync(url, bodyData).ConfigureAwait(false);
+
+            if (response.IsSuccessStatusCode)
+            {
+                JSRuntime.ConsoleDebug(url, response.StatusCode);
+                return;
+            }
+
+            if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                BadRequestInterfaceResult? error = await response.Content.ReadFromJsonAsync<BadRequestInterfaceResult>(JsonSerializerOptions);
+                JSRuntime.ConsoleError(error!);
+
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add(error?.Message, Severity.Error);
+                return;
+            }
+            throw new HttpRequestException(response.StatusCode.ToString());
+        }
+        catch (HttpRequestException ex)
+        {
+            HttpError(ex);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
 }

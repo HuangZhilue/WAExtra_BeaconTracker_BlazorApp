@@ -1,33 +1,32 @@
 ﻿@using ModelLibrary.CLEModels
 @using WAExtra_BeaconTracker_BlazorApp.Models.NewCLEModels
+
 @implements IAsyncDisposable
+
 @inject IJSRuntime JSRuntime
 @inject IThemeInterop ThemeInterop;
 
 <MudPaper Style="overflow:hidden; position:relative;">
     <MudDrawerContainer>
-        <MudDrawer @bind-Open="@ShowOption" Width="600px" Fixed="false" Anchor="Anchor.Right" Elevation="1" Variant="DrawerVariant.Temporary">
-            <MapSetting
-                UpdateShow="@((e)=>ShowOption = e)"               
-                UpdateCLEInfo="@((cleInfo)=>CLEInfoData = cleInfo)"
+        <MudDrawer @bind-Open="@ShowOption" Width="600px" Fixed="false" Anchor="Anchor.Right" Elevation="1"
+            Variant="DrawerVariant.Temporary">
+            <MapSetting UpdateShow="@((e)=>ShowOption = e)" UpdateCLEInfo="@((cleInfo)=>CLEInfoData = cleInfo)"
                 UpdateCLEMap="@((tupleCLEMap)=>{CLEMapData = tupleCLEMap.Item1; CLEMapImage = tupleCLEMap.Item2;})"
-                EnableAxis="EnableAxis"
-                UpdateEnableAxis="@((e)=>EnableAxis = e)"
-                EnableArea="EnableArea"
-                UpdateEnableArea="@((e)=>EnableArea=e)"
-                EnableAreaName="EnableAreaName"
-                UpdateEnableAreaName="@((e)=>EnableAreaName=e)"
-                EnableTrackUpdate="EnableTrackUpdate"
+                EnableAxis="EnableAxis" UpdateEnableAxis="@((e)=>EnableAxis = e)" EnableArea="EnableArea"
+                UpdateEnableArea="@((e)=>EnableArea=e)" EnableAreaName="EnableAreaName"
+                UpdateEnableAreaName="@((e)=>EnableAreaName=e)" EnableTrackUpdate="EnableTrackUpdate"
                 UpdateEnableTrackUpdate="@((e)=>EnableTrackUpdate=e)"
                 UpdateSearchType4TrackValue="@((e)=>SearchType4TrackValue=e)"
                 UpdateSearchType4PositionValue="@((e)=>SearchType4PositionValue=e)"
-                UpdateTrack="@((e)=>TrackGroupData=e)"
-                UpdatePosition="@((e)=>PositionGroupData=e)">
+                UpdateTrack="@((e)=>TrackGroupData=e)" UpdatePosition="@((e)=>PositionGroupData=e)">
             </MapSetting>
         </MudDrawer>
-        
-        <div class="fullPage" id="canvasBox">   
-            <MudButton Class="leaflet-top leaflet-right custom-control" Style="pointer-events: auto" OnClick="@(()=>ShowOption=!ShowOption)" Variant="Variant.Filled" Color="Color.Primary">设置</MudButton>
+
+        <div class="fullPage" id="canvasBox">
+            <MudButton Class="leaflet-top leaflet-right custom-control" Style="pointer-events: auto"
+                OnClick="@(()=>ShowOption=!ShowOption)" Variant="Variant.Filled" Color="Color.Primary">
+                设置
+            </MudButton>
             @ChildContent
         </div>
     </MudDrawerContainer>
@@ -39,7 +38,7 @@
     public RenderFragment? ChildContent { get; set; }
 
     private bool _showOption;
-    private bool _enableAxis;
+    private bool _enableAxis = true;
     private bool _enableArea = true;
     private bool _enableAreaName = true;
     private bool _enableTrackUpdate = false;
@@ -60,43 +59,48 @@
     private bool EnableAxis
     {
         get { return _enableAxis; }
-        set {
-            _enableAxis = value;        
-            _= MapWorldObject?.InvokeVoidAsync("UpdateAxis", value);
+        set
+        {
+            _enableAxis = value;
+            _ = MapWorldObject?.InvokeVoidAsync("UpdateAxis", value);
         }
     }
 
     private bool EnableArea
     {
         get { return _enableArea; }
-        set {
+        set
+        {
             _enableArea = value;
-            _= MapWorldObject?.InvokeVoidAsync("UpdateArea", value);
+            _ = MapWorldObject?.InvokeVoidAsync("UpdateArea", value);
         }
     }
 
     private bool EnableAreaName
     {
         get { return _enableAreaName; }
-        set { 
+        set
+        {
             _enableAreaName = value;
-            _= MapWorldObject?.InvokeVoidAsync("UpdateAreaName", value);
+            _ = MapWorldObject?.InvokeVoidAsync("UpdateAreaName", value);
         }
     }
 
     private bool EnableTrackUpdate
     {
         get { return _enableTrackUpdate; }
-        set {
+        set
+        {
             _enableTrackUpdate = value;
-            _= MapWorldObject?.InvokeVoidAsync("UpdateTrackUpdate", value);
+            _ = MapWorldObject?.InvokeVoidAsync("UpdateTrackUpdate", value);
         }
     }
 
     private NewCLEInfo CLEInfoData
     {
         get { return _cleInfoData; }
-        set {
+        set
+        {
             _cleInfoData = value;
             // MapWorldObject?.InvokeAsync<IJSObjectReference>("Set", "ThemePlaceholderColor", "ThemePlaceholderColor");
             // _= MapWorldObject?.InvokeVoidAsync("InitCLEInfo", value);
@@ -106,8 +110,9 @@
     private NewCLEMap CLEMapData
     {
         get { return _cleMapData; }
-        set { 
-            _cleMapData = value; 
+        set
+        {
+            _cleMapData = value;
             // 交由CLEMapImage来触发
             // _= MapWorldObject?.InvokeVoidAsync("InitCLEMap", _cleMapData, _cleMapImage);
         }
@@ -116,54 +121,59 @@
     private string CLEMapImage
     {
         get { return _cleMapImage; }
-        set { 
+        set
+        {
             _cleMapImage = value;
-            _= MapWorldObject?.InvokeVoidAsync("InitCLEMap", _cleMapData, _cleMapImage);
+            _ = MapWorldObject?.InvokeVoidAsync("InitCLEMap", _cleMapData, _cleMapImage);
         }
     }
 
     private SortedDictionary<string, List<NewCLETrack>> TrackGroupData
     {
         get { return _trackGroupData; }
-        set { 
-            _trackGroupData = value; 
-            _= MapWorldObject?.InvokeVoidAsync("initTrackGroupData", value);
+        set
+        {
+            _trackGroupData = value;
+            _ = MapWorldObject?.InvokeVoidAsync("initTrackGroupData", value);
         }
     }
 
     private SortedDictionary<string, List<NewCLETrack>> PositionGroupData
     {
         get { return _positionGroupData; }
-        set { 
+        set
+        {
             _positionGroupData = value;
-            _= MapWorldObject?.InvokeVoidAsync("initCargoPosition", value);
+            _ = MapWorldObject?.InvokeVoidAsync("initCargoPosition", value);
         }
     }
 
     private CLEBeaconTrailSearchType SearchType4TrackValue
     {
         get { return _searchType4TrackValue; }
-        set { 
+        set
+        {
             _searchType4TrackValue = value;
-            _= MapWorldObject?.InvokeAsync<IJSObjectReference>("Set", "SearchType4TrackValue", value);
+            _ = MapWorldObject?.InvokeAsync<IJSObjectReference>("Set", "SearchType4TrackValue", value);
         }
     }
 
     private CLEBeaconTrailSearchType SearchType4PositionValue
     {
         get { return _searchType4PositionValue; }
-        set { 
+        set
+        {
             _searchType4PositionValue = value;
-            _= MapWorldObject?.InvokeAsync<IJSObjectReference>("Set", "SearchType4PositionValue", value);
+            _ = MapWorldObject?.InvokeAsync<IJSObjectReference>("Set", "SearchType4PositionValue", value);
         }
     }
 
     private IJSObjectReference? JSModule { get; set; }
-    private IJSObjectReference? MapWorldObject{ get; set; }
+    private IJSObjectReference? MapWorldObject { get; set; }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        JSRuntime.ConsoleDebug("MapWorld\t=>\tOnAfterRenderAsync:\t"+firstRender);
+        JSRuntime.ConsoleDebug("MapWorld\t=>\tOnAfterRenderAsync:\t" + firstRender);
         if (firstRender)
         {
             string systemTheme = await ThemeInterop.GetSystemTheme();
@@ -174,7 +184,9 @@
 
             MapWorldObject = await JSModule.InvokeAsync<IJSObjectReference>("InitMapWorld");
             JSRuntime.ConsoleInfo(MapWorldObject);
-            await MapWorldObject.InvokeVoidAsync("UpdateTheme", isDark?"dark":"light", 0.1,0.2, !isDark?MudThemeManager._currentTheme.Palette.OverlayDark.ToString():MudThemeManager._currentTheme.Palette.OverlayLight.ToString());
+            await MapWorldObject.InvokeVoidAsync("UpdateTheme", isDark ? "dark" : "light", 0.1, 0.2,
+            !isDark ? MudThemeManager._currentTheme.Palette.OverlayDark.ToString() :
+            MudThemeManager._currentTheme.Palette.OverlayLight.ToString());
             await MapWorldObject.InvokeVoidAsync("UpdateAxis", EnableAxis);
             await MapWorldObject.InvokeVoidAsync("UpdateArea", EnableArea);
             await MapWorldObject.InvokeVoidAsync("UpdateAreaName", EnableAreaName);
@@ -186,12 +198,14 @@
         JSRuntime.ConsoleInfo(MapWorldObject!);
     }
 
-    private async void ThemeChanged(object? args,string themeName)
-    { 
-        JSRuntime.ConsoleInfo("MapWorld\t=>\tThemeChanged:\t"+themeName,args!);
-        if(MapWorldObject is null) return;
+    private async void ThemeChanged(object? args, string themeName)
+    {
+        JSRuntime.ConsoleInfo("MapWorld\t=>\tThemeChanged:\t" + themeName, args!);
+        if (MapWorldObject is null) return;
         bool isDark = themeName.Equals("DARK", StringComparison.InvariantCultureIgnoreCase);
-        await MapWorldObject.InvokeVoidAsync("UpdateTheme", isDark?"dark":"light", 0.1,0.2, !isDark?MudThemeManager._currentTheme.Palette.OverlayDark.ToString():MudThemeManager._currentTheme.Palette.OverlayLight.ToString());                    
+        await MapWorldObject.InvokeVoidAsync("UpdateTheme", isDark ? "dark" : "light", 0.1, 0.2,
+        !isDark ? MudThemeManager._currentTheme.Palette.OverlayDark.ToString() :
+        MudThemeManager._currentTheme.Palette.OverlayLight.ToString());
     }
 
     async ValueTask IAsyncDisposable.DisposeAsync()
@@ -209,7 +223,7 @@
             }
             ThemeInterop.ThemeChanged -= ThemeChanged;
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             JSRuntime.ConsoleError(ex);
         }

@@ -1,14 +1,19 @@
 ﻿@using System.Text.Json
 @using Blazored.LocalStorage
+@using Microsoft.AspNetCore.SignalR.Client
 @using ModelLibrary.CLEModels
 @using WAExtra_BeaconTracker_BlazorApp.Models
 @using WAExtra_BeaconTracker_BlazorApp.Models.NewCLEModels
 @using WAExtra_BeaconTracker_BlazorApp.Services.ApiServices
 
+@implements IAsyncDisposable
+
 @inject IHttpClientFactory ClientFactory
-@inject IndexApiService IndexApiService
+@inject CLEApiService CLEApiService
 @inject ILocalStorageService LocalStorageService
 @inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
 
 <MudCard>
     <MudCardContent Style="position: relative;">
@@ -60,7 +65,7 @@
                     <MudSwitch LabelPosition="LabelPosition.End" Label="显示区域名称" Checked="EnableAreaName" Color="Color.Primary" T="bool" CheckedChanged="((e)=>UpdateEnableAreaName.InvokeAsync(e))" />
                 </MudItem>
             </MudGrid>
-            <MudTabs Elevation="2" Centered="true" Rounded="true" ApplyEffectsToContainer="true">
+            <MudTabs Elevation="2" Centered="true" Rounded="true" ApplyEffectsToContainer="true" @bind-ActivePanelIndex="ActiveTabPaneIndex">
                 <MudTabPanel Text="轨迹" Icon="@Icons.Material.Filled.Polyline">
                     <MudGrid>
                         <MudItem xs="12">
@@ -242,6 +247,8 @@
     /// </summary>
     private SortedList<string, string> SelectCLEBeaconOptions { get; } = [];
 
+    private int ActiveTabPaneIndex { get; set; } = 0;
+
     #region 轨迹面板
 
     /// <summary>
@@ -354,9 +361,135 @@
         }
     }
 
-    protected override Task OnInitializedAsync()
+    private HubConnection? HubConnection { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
     {
-        return Task.CompletedTask;
+        HubConnection = new HubConnectionBuilder()
+        .WithUrl(Navigation.ToAbsoluteUri("/LoggingHub"), (options) =>
+        {
+            options.ClientCertificates?.Clear();
+        })
+        .ConfigureLogging(logging =>
+        {
+            logging.SetMinimumLevel(LogLevel.Error);
+        }) 
+        .WithAutomaticReconnect([TimeSpan.FromMilliseconds(2000)])
+        .Build();
+
+        await HubConnection.StartAsync();
+
+        await HubConnection.InvokeAsync("JoinGroup4Tracker");
+        HubConnection.Remove("ReceiveMessage");
+        HubConnection.Remove("ReceiveErrorMessage");
+        HubConnection.Remove("ReceiveNewTrack");
+
+        HubConnection.On<string>("ReceiveMessage", (message) =>
+        {
+            JSRuntime.ConsoleWarn("ReceiveMessage", message);
+            // Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+            // Snackbar.Add(message, Severity.Info);
+            // InvokeAsync(StateHasChanged);
+        });
+        HubConnection.On<string>("ReceiveErrorMessage", (message) =>
+        {
+            JSRuntime.ConsoleError("ReceiveErrorMessage", message);
+            // Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+            // Snackbar.Add(message, Severity.Error);
+            // InvokeAsync(StateHasChanged);
+        });
+        HubConnection.On<NewCLETrack>("ReceiveNewTrack", (data) =>
+        {
+            JSRuntime.ConsoleWarn("ReceiveNewTrack", data);
+            // NewCLETrack data = System.Text.Json.JsonSerializer.Deserialize<NewCLETrack>(System.Text.Json.JsonSerializer.Serialize(data2))!;
+
+            if (SelectCLEMapValue?.Id != data.MapId) return;
+            if (EnableTrackUpdate && ActiveTabPaneIndex == 0) {
+              bool inThisSearchGroup = false;
+              if (LastSearchText4Track.Length > 0) {
+                CLEBeaconTrailSearchType SubTrackType = SearchType4TrackValue;
+                switch (SubTrackType) {
+                  case CLEBeaconTrailSearchType.AwbNo: {
+                    inThisSearchGroup = LastSearchText4Track == data.AwbNo;
+                    break;
+                  }
+                  case CLEBeaconTrailSearchType.ULD: {
+                    inThisSearchGroup = LastSearchText4Track == data.ULD;
+                    break;
+                  }
+                  case CLEBeaconTrailSearchType.RFID: {
+                    inThisSearchGroup = LastSearchText4Track == data.RFID;
+                    break;
+                  }
+                  case CLEBeaconTrailSearchType.BeaconMac:
+                  default: {
+                    inThisSearchGroup = LastSearchText4Track == data.Mac;
+                    break;
+                  }
+                }
+              }
+              if (!inThisSearchGroup || data.IsDelete == NewBoolString.True) return;
+              TrackJson.Add(data);
+              InvokeAsync(InitTrackGroupData);
+            } else if (ActiveTabPaneIndex == 1) {
+              NewCLETrack? p = PositionJson.Find(
+                (item) =>
+                  item.AwbNo == data.AwbNo &&
+                  item.MapId == data.MapId &&
+                  item.Mac == data.Mac &&
+                  item.RFID == data.RFID &&
+                  item.ULD == data.ULD
+              );
+              bool inThisSearchGroup = !(LastSearchText4Position?.Length > 0);
+              if (!inThisSearchGroup) {
+                switch (SearchType4PositionValue) {
+                  case CLEBeaconTrailSearchType.AwbNo:
+                    inThisSearchGroup = LastSearchText4Position == data.AwbNo;
+                    break;
+                  case CLEBeaconTrailSearchType.RFID:
+                    inThisSearchGroup = LastSearchText4Position == data.RFID;
+                    break;
+                  case CLEBeaconTrailSearchType.ULD:
+                    inThisSearchGroup = LastSearchText4Position == data.ULD;
+                    break;
+                  case CLEBeaconTrailSearchType.BeaconMac:
+                  default:
+                    inThisSearchGroup = LastSearchText4Position == data.Mac;
+                    break;
+                }
+              }
+              if (!inThisSearchGroup) return;
+              if (p is null && data.IsDelete != NewBoolString.True) {
+                // 原先没有，新的数据为有效数据，且在当前搜索条件中，则添加到列表中
+                PositionJson.Add(data);
+              } else if (p is null && data.IsDelete == NewBoolString.True) {
+                // 原先没有，且新的数据不是有效数据，则不添加
+                // ignore
+              } else if (p is not null && data.IsDelete != NewBoolString.True) {
+                // 原先存在，且新的数据为有效数据，则更新列表中对应的数据
+                p.X = data.X;
+                p.Y = data.Y;
+                p.Z = data.Z;
+                p.CalculatedAt = data.CalculatedAt;
+                p.CreatedTime = data.CreatedTime;
+                p.UpdatedAt = data.UpdatedAt;
+                p.UserDataString = data.UserDataString;
+                p.UserDataTsString = data.UserDataTsString;
+                p.ZoneId = data.ZoneId;
+                p.LastGateway = data.LastGateway;
+                p.MapId = data.MapId;
+                p.ModifiedTime = data.ModifiedTime;
+              } else if (p is not null && data.IsDelete == NewBoolString.True) {
+                // 原先存在，但新的数据不是有效数据，则移除列表中对应的数据
+                int index = PositionJson.IndexOf(p);
+                PositionJson.RemoveAt(index);
+              }
+
+              JSRuntime.ConsoleWarn(PositionJson);
+              InvokeAsync(GetPositionGroupData);
+            }
+            // InvokeAsync(StateHasChanged);
+        });
     }
 
     protected override Task OnAfterRenderAsync(bool firstRender)
@@ -387,7 +520,7 @@
             [nameof(NewCLEInfo), nameof(NewCLEInfo) + "List", nameof(NewCLEMap), nameof(NewCLEMap) + "List", "CLEMapImage"]
         );
         IsLoading = true;
-        List<NewCLEInfo>? result = await IndexApiService.GetCLEInfo();
+        List<NewCLEInfo>? result = await CLEApiService.GetCLEInfo();
         foreach (NewCLEInfo info in result)
         {
             SelectCLEInfoOptions.Add(info.Name, info);
@@ -418,7 +551,7 @@
         );
 
         IsLoading = true;
-        List<NewCLEMap>? result = await IndexApiService.GetCLEMaps(info.Id);
+        List<NewCLEMap>? result = await CLEApiService.GetCLEMaps(info.Id);
         foreach (NewCLEMap cleMap in result)
         {
             SelectCLEMapOptions.Add(cleMap.Name, cleMap);
@@ -439,7 +572,7 @@
 
         await LocalStorageService.SetItemAsync<NewCLEMap>(nameof(NewCLEMap), map);
         await LocalStorageService.RemoveItemAsync("CLEMapImage");
-        string cleMapImage = await IndexApiService.GetCLEMapImage(map.Id);
+        string cleMapImage = await CLEApiService.GetCLEMapImage(map.Id);
         await LocalStorageService.SetItemAsStringAsync("CLEMapImage", cleMapImage);
 
         await UpdateCLEMap.InvokeAsync(new(map, cleMapImage));
@@ -463,7 +596,7 @@
         await LocalStorageService.RemoveItemsAsync([nameof(CLEBeacon), nameof(CLEBeacon) + "List"]);
         SelectCLEBeaconOptions.Clear();
         IsLoading = true;
-        List<string>? result = await IndexApiService.GetBeaconList();
+        List<string>? result = await CLEApiService.GetBeaconList();
         foreach (string mac in result)
         {
             SelectCLEBeaconOptions.Add(mac, mac);
@@ -492,11 +625,11 @@
         IsLoading = true;
         if (EnableTrackUpdate)
         {
-            TrackJson = await IndexApiService.GetCLEBeaconLastTrail(SearchType4TrackValue, SearchText4Track, SelectCLEMapValue.Id);
+            TrackJson = await CLEApiService.GetCLEBeaconLastTrail(SearchType4TrackValue, SearchText4Track, SelectCLEMapValue.Id);
         }
         else
         {
-            TrackJson = await IndexApiService.GetCLEBeaconTrail(SearchType4TrackValue, SearchText4Track, SelectCLEMapValue.Id, (StartDate ?? DateTime.Today).AddTicks((StartTime ?? TimeSpan.Zero).Ticks), (EndDate ?? DateTime.Today.AddDays(1)).AddTicks((EndTime ?? TimeSpan.Zero).Ticks));
+            TrackJson = await CLEApiService.GetCLEBeaconTrail(SearchType4TrackValue, SearchText4Track, SelectCLEMapValue.Id, (StartDate ?? DateTime.Today).AddTicks((StartTime ?? TimeSpan.Zero).Ticks), (EndDate ?? DateTime.Today.AddDays(1)).AddTicks((EndTime ?? TimeSpan.Zero).Ticks));
         }
         LastSearchText4Track = SearchText4Track;
         InitTrackGroupData();
@@ -508,7 +641,7 @@
     /// </summary>
     private void InitTrackGroupData()
     {
-        TrackGroupValue = string.Empty;
+        // TrackGroupValue = string.Empty;
         TrackGroupOptions.Clear();
         // 对轨迹进行分组（按 ULD、RFID标签号、信标MAC地址 进行分组）
         // 目前仅对 轨迹类型=AWBNo 的进行分组
@@ -594,7 +727,7 @@
         trackJsonTemp.ToList().ForEach((g) =>
         {
             var trackList = g.ToList();
-            if (trackList.Count > MaxPointLength)
+            if (trackList.Count > MaxPointLength && EnableTrackUpdate)
             {
                 // 移除一半，以便保持数据量在合理范围（即：不会一下子移除maxPointLength个点位，让本来1001个点位一下子变成1个点位，而是变成501个点位）
                 var removeCount = trackList.Count - MaxPointLength / 2;
@@ -632,7 +765,7 @@
         await UpdateSearchType4PositionValue.InvokeAsync(SearchType4PositionValue);
         IsLoading = true;
         // 获取所有CLE信标位置
-        var result = await IndexApiService.GetAllCLEBeaconPosition(SearchType4PositionValue, SearchText4Position, SelectCLEMapValue.Id);
+        var result = await CLEApiService.GetAllCLEBeaconPosition(SearchType4PositionValue, SearchText4Position, SelectCLEMapValue.Id);
         LastSearchText4Position = SearchText4Position;
         PositionJson = result;
         GetPositionGroupData();
@@ -670,4 +803,12 @@
     }
 
     #endregion
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (HubConnection is not null)
+        {
+            await HubConnection.DisposeAsync();
+        }
+    }
 }

@@ -1,0 +1,18 @@
+﻿/*::deep td:has(div:mud-progress-linear) {*/
+    /* ... */
+    /*padding-top: 0;
+    padding-bottom: 16px;
+    padding-left: 0;
+    padding-right: 0;
+}*/
+/*::deep .isSending {
+    margin-top: -16px;
+}
+::deep.isSending {
+    margin-left: -16px;
+}
+
+.isSending {
+    margin-bottom: -8px;
+}
+*/

@@ -4,15 +4,18 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AssemblyVersion>1.0.305.0131</AssemblyVersion>
-    <FileVersion>1.0.305.0131</FileVersion>
+    <AssemblyVersion>1.0.437.0809</AssemblyVersion>
+    <FileVersion>1.0.437.0809</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
 	<PackageReference Include="Blazored.LocalStorage" Version="4.4.0" />
 	<PackageReference Include="FisSst.BlazorMaps" Version="1.0.1" />
+	<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.0" />
 	<PackageReference Include="MudBlazor" Version="6.11.1" />
 	<PackageReference Include="MudBlazor.ThemeManager" Version="1.0.8" />
+	<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+	<PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
     <ProjectReference Include="..\WAExtra_BeaconTracker_BlazorApp.Client\WAExtra_BeaconTracker_BlazorApp.Client.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.0" />
   </ItemGroup>

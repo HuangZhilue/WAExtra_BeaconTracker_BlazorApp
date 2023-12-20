@@ -6,13 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
     <link rel="stylesheet" href="css/app.css" />
+    <link rel="stylesheet" href="/css/component.css" />
     <link rel="stylesheet" href="WAExtra_BeaconTracker_BlazorApp.styles.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
-    <link href="_content/MudBlazor.ThemeManager/MudBlazorThemeManager.css" rel="stylesheet" />
-    <link href="css/roboto-font.css" rel="stylesheet" />
+    <link rel="stylesheet" href="_content/MudBlazor.ThemeManager/MudBlazorThemeManager.css" />
+    <link rel="stylesheet" href="css/roboto-font.css" />
     @* <link href="beacontrack-library/style.css" rel="stylesheet" /> *@
-    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
-    <link href="leaflet@2.0-dev/leaflet.css" rel="stylesheet" />
+    <link rel="stylesheet" href="_content/MudBlazor/MudBlazor.min.css" />
+    <link rel="stylesheet" href="/beacontrack-library/style.css" />
+    @* <link href="leaflet@2.0-dev/leaflet.css" rel="stylesheet" /> *@
     <HeadOutlet @rendermode="InteractiveServer" />
 </head>
 
@@ -21,7 +23,7 @@
     <script src="_framework/blazor.web.js"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <script src="js/themeinterop.js"></script>
-    <script src="leaflet@2.0-dev/leaflet.js"></script>
+    @* <script src="leaflet@2.0-dev/leaflet.js"></script> *@
     @* <script src="beacontrack-library/beacontrack-library.js"></script> *@
     @* <script src="beacontrack-library/index.js" ></script> *@
 </body>

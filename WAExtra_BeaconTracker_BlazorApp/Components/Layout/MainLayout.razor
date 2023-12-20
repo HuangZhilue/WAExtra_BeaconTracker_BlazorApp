@@ -1,4 +1,6 @@
-﻿@inject IJSRuntime JSRuntime;
+﻿@implements IAsyncDisposable
+
+@inject IJSRuntime JSRuntime;
 @inject IThemeInterop ThemeInterop;
 
 @inherits LayoutComponentBase
@@ -10,7 +12,7 @@
 <MudLayout>
     <MudAppBar Elevation="1">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
-        <MudText Typo="Typo.h5" Class="ml-3">PageTitle</MudText>
+        <MudText Typo="Typo.h5" Class="ml-3">@(Title)</MudText>
         <MudSpacer />
         <MudIconButton Icon="@(IsDarkTheme ? Icons.Material.Outlined.DarkMode : Icons.Material.Outlined.LightMode)" Color="Color.Inherit" Edge="Edge.End" OnClick="SwitchTheme" />
     </MudAppBar>
@@ -32,19 +34,38 @@
 </div>
 
 @code {
+    private string Title { get; set; } = "轨迹查询";
     private bool DrawerOpen { get; set; } = true;
     private bool IsDarkTheme { get; set; } = false;
+    private IJSObjectReference? JSModule { get; set; }
 
     protected override async Task OnAfterRenderAsync(bool isFirstRender)
     {
+        JSRuntime.ConsoleDebug("MainLayout\t=>\tOnAfterRenderAsync:\t" + isFirstRender);
         if (isFirstRender)
         {
+            JSModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./Components/Layout/MainLayout.razor.js");
             // 获取系统主题
             string systemTheme = await ThemeInterop.GetSystemTheme();
             IsDarkTheme = systemTheme.Equals("DARK", StringComparison.InvariantCultureIgnoreCase);
             ThemeInterop.SetSystemTheme(IsDarkTheme);
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
         }
+        if (JSModule is not null)
+        {
+            string title = await JSModule.InvokeAsync<string>("getTitle");
+            if (title != Title)
+            {
+                Title = title;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
+    protected override Task OnParametersSetAsync()
+    {
+        JSRuntime.ConsoleDebug("MainLayout\t=>\tOnParametersSetAsync");
+        return base.OnParametersSetAsync();
     }
 
     private void SwitchTheme()
@@ -74,6 +95,23 @@
 
     protected override void OnInitialized()
     {
+        JSRuntime.ConsoleDebug("MainLayout\t=>\tOnInitialized");
         StateHasChanged();
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        JSRuntime.ConsoleDebug("MapWorld\t=>\tDisposeAsync");
+        try
+        {
+            if (JSModule is not null)
+            {
+                await JSModule.DisposeAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            JSRuntime.ConsoleError(ex);
+        }
     }
 }

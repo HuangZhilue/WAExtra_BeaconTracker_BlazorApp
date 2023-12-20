@@ -1,0 +1,402 @@
+﻿@using System.Net.Http.Json
+@using Blazored.LocalStorage
+@using Newtonsoft.Json
+@using Newtonsoft.Json.Linq
+@using ModelLibrary
+@using Microsoft.AspNetCore.SignalR.Client
+@using WAExtra_BeaconTracker_BlazorApp.Models
+@using WAExtra_BeaconTracker_BlazorApp.Models.NewRFIDCarModels
+@using WAExtra_BeaconTracker_BlazorApp.Services.ApiServices
+
+@inject IHttpClientFactory ClientFactory
+@inject CarApiService CarApiService
+@inject ILocalStorageService LocalStorageService
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+@page "/rfidcar/index"
+
+<PageTitle>叉车数据终端管理</PageTitle>
+
+<MudDataGrid T="NewRFIDCarInfo" Class="pa-4" Items="RFIDCarList" ReadOnly="true" MultiSelection="true" Loading="IsLoading"
+    SortMode="SortMode.Multiple" Filterable="true" SelectedItemsChanged="items => SelectedRFIDCarList = items"
+    QuickFilter="_quickFilter" Hideable="true">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">终端设备列表</MudText>
+        <MudButtonGroup Color="Color.Primary" Variant="Variant.Outlined" Style="margin-left: 15px;">
+            <MudButton StartIcon="@Icons.Material.Filled.Search" IconColor="Color.Primary" OnClick="InitList">获取</MudButton>
+            <MudButton StartIcon="@Icons.Material.Filled.Add" IconColor="Color.Info" OnClick="(()=>StartedEditingItem(new()))">添加</MudButton>
+            <MudButton StartIcon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="DeleteRFIDCars" Disabled="@(SelectedRFIDCarList.Count<=0)">删除</MudButton>
+        </MudButtonGroup>
+        <MudSpacer />
+        <MudTextField @bind-Value="_searchString" Placeholder="搜索" Adornment="Adornment.Start" Immediate="true" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium"></MudTextField>
+    </ToolBarContent>
+    <Columns>
+        <SelectColumn T="NewRFIDCarInfo" ShowInHeader="true" ShowInFooter="false" />
+        <PropertyColumn Property="x => x.Mac" Title="设备MAC地址" />
+        <PropertyColumn Property="x => x.SetDistance" Title="探测距离" />
+        <PropertyColumn Property="x => x.SetSTR" Title="自定义字符串（绑定的蓝牙定位信标）" />
+        <PropertyColumn Property="x => x.ModifiedTime" Title="上次修改时间" />
+        <TemplateColumn Filterable="false" Sortable="false">
+            <CellTemplate>
+                @{
+                    bool disable = RFIDCarStateDic.ContainsKey(context.Item.Mac) && RFIDCarStateDic[context.Item.Mac].Message != "Completed" && RFIDCarStateDic[context.Item.Mac].Message != "TimeoutOrFailed";
+                }
+                <MudButton Variant="Variant.Filled" Size="Size.Small" EndIcon="@Icons.Material.Filled.Send" Color="Color.Primary" OnClick="@(()=>SetCargoPositionDeviceAsync(context.Item))" Disabled="disable">
+                    @if (disable)
+                    {
+                        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
+                        @("正在下发...")
+                    }
+                    else
+                    {
+                        @("下发设置项")
+                    }
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Size="Size.Small" EndIcon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="@(()=>StartedEditingItem(context.Item))" Disabled="disable">修改</MudButton>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+    <ChildRowContent>
+        <div class="ignore-this" style="display: none;"></div>
+        @if (RFIDCarStateDic.ContainsKey(context.Item.Mac) && RFIDCarStateDic[context.Item.Mac].Message != "Completed" && RFIDCarStateDic[context.Item.Mac].Message != "TimeoutOrFailed")
+        {
+            <MudProgressLinear Color="Color.Secondary" Indeterminate="true" Size="Size.Large" Class="isSending" />
+        }
+    </ChildRowContent>
+    <PagerContent>
+        <MudDataGridPager T="NewRFIDCarInfo" />
+    </PagerContent>
+</MudDataGrid>
+
+<MudDialog @bind-IsVisible="DialogVisible" Options="DialogOptions">
+    <DialogContent>
+        <MudForm @ref="RFIDCarForm" @bind-IsValid="@ValidRFIDCarData">
+            <MudTextField T="string" Label="设备MAC地址" Required="true" MaxLength="12" RequiredError="设备MAC地址 必填" Variant="Variant.Outlined" @bind-Value="@EditingRFIDCar.Mac" Mask="RegexMask4InputMac" HelperText="@RegexMask4InputMac.Mask"></MudTextField>
+            <MudDivider DividerType="DividerType.FullWidth" Style="margin-top: 5px; margin-bottom: 5px;"></MudDivider>
+            <MudNumericField Label="探测距离" Variant="Variant.Outlined" @bind-Value="@EditingRFIDCar.SetDistance"></MudNumericField>
+            <MudTextField Label="自定义字符串" Variant="Variant.Outlined" @bind-Value="@EditingRFIDCar.SetSTR"></MudTextField>
+            <MudDivider DividerType="DividerType.FullWidth" Style="margin-top: 5px; margin-bottom: 5px;"></MudDivider>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@CanceledEditingItem">取消</MudButton>
+        <MudButton Color="Color.Primary" OnClick="@(()=>CommittedItemChanges(EditingRFIDCar))">保存</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<MudMessageBox @ref="MudMessageBox4Delete" Title="警告" CancelText="取消">
+    <MessageContent>
+        删除以下终端设备 :
+        <MudGrid Spacing="2" Justify="Justify.Center">
+            @foreach (NewRFIDCarInfo RFIDCar in SelectedRFIDCarList)
+            {
+                <MudItem xs="12">
+                    <MudChip Label="true">
+                        @RFIDCar.Mac
+                    </MudChip>
+                </MudItem>
+            }
+        </MudGrid>
+    </MessageContent>
+    <YesButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.DeleteForever">删除
+        </MudButton>
+    </YesButton>
+</MudMessageBox>
+
+<MudMessageBox @ref="MudMessageBox4Send" Title="准备下发" CancelText="取消">
+    <MessageContent>
+        选择要下发的设置项 :
+        <MudSimpleTable Style="min-width: 360px">
+            <tbody>
+                <tr>
+                    <td>
+                        <MudCheckBox @bind-Checked="@Send_Distance" Color="Color.Primary"></MudCheckBox>
+                    </td>
+                    <td>Distance</td>
+                    <td>@(EditingRFIDCar.SetDistance)</td>
+                </tr>
+                <tr>
+                    <td>
+                        <MudCheckBox @bind-Checked="@Send_STR" Color="Color.Primary"></MudCheckBox>
+                    </td>
+                    <td>STR</td>
+                    <td>@(EditingRFIDCar.SetSTR)</td>
+                </tr>
+            </tbody>
+        </MudSimpleTable>
+    </MessageContent>
+    <YesButton>
+        <MudButton Variant="Variant.Filled" Size="Size.Small" EndIcon="@Icons.Material.Filled.Send"
+            Color="Color.Primary">下发设置项</MudButton>
+    </YesButton>
+</MudMessageBox>
+
+@code {
+    private bool _isLoading = false;
+    private bool IsLoading
+    {
+        get => _isLoading; set
+        {
+            _isLoading = value;
+            Console.WriteLine(value);
+            InvokeAsync(StateHasChanged);
+        }
+    }
+    /// <summary>
+    /// 终端设备列表
+    /// </summary>
+    private List<NewRFIDCarInfo> RFIDCarList { get; set; } = [];
+    /// <summary>
+    /// 被选中的终端设备列表
+    /// </summary>
+    private HashSet<NewRFIDCarInfo> SelectedRFIDCarList { get; set; } = [];
+    /// <summary>
+    /// 被选中的终端设备
+    /// </summary>
+    private NewRFIDCarInfo SelectedRFIDCar { get; set; } = null!;
+    /// <summary>
+    /// 正在被编辑的终端设备
+    /// </summary>
+    private NewRFIDCarInfo EditingRFIDCar { get; set; } = null!;
+    private string _searchString { get; set; } = string.Empty;
+    /// <summary>
+    /// 是否显示修改/添加终端设备的弹窗
+    /// </summary>
+    private bool DialogVisible { get; set; } = false;
+    private DialogOptions DialogOptions { get; set; } = new() { FullWidth = true };
+    #region 终端设备信息添加/修改时的验证
+    private bool ValidRFIDCarData { get; set; }
+    private string[] InValidMessage { get; set; } = { };
+    private MudForm RFIDCarForm { get; set; } = null!;
+    #endregion
+    private MudMessageBox MudMessageBox4Delete { get; set; } = null!;
+    private MudMessageBox MudMessageBox4Send { get; set; } = null!;
+    /// <summary>
+    /// 是否发送Distance
+    /// </summary>
+    private bool Send_Distance { get; set; } = false;
+    /// <summary>
+    /// 是否发送STR
+    /// </summary>
+    private bool Send_STR { get; set; } = false;
+    /// <summary>
+    /// 保存设置项下发状态的字典列表
+    /// </summary>
+    private Dictionary<string, InterfaceResult> RFIDCarStateDic { get; set; } = new();
+    // quick filter - filter globally across multiple columns with the same input
+    private Func<NewRFIDCarInfo, bool> _quickFilter => x =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+        if (x.Mac.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (x.SetDistance.HasValue && x.SetDistance.Value.ToString().Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (!string.IsNullOrWhiteSpace(x.SetSTR) && x.SetSTR.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return false;
+    };
+
+    private HubConnection? HubConnection { get; set; } = null!;
+    private static PatternMask RegexMask4InputMac { get; } = new PatternMask("XX-XX-XX-XX-XX-XX") { 
+        MaskChars = new[] { new MaskChar('X', @"[0-9a-fA-F]") },
+        Placeholder = '_',
+        CleanDelimiters = true,
+        Transformation = AllUpperCase
+    };
+    
+    // transform lower-case chars into upper-case chars
+    private static char AllUpperCase(char c) => c.ToString().ToUpperInvariant()[0];
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        HubConnection = new HubConnectionBuilder()
+        .WithUrl(Navigation.ToAbsoluteUri("/LoggingHub"), (options) =>
+        {
+            options.ClientCertificates?.Clear();
+        })
+        .ConfigureLogging(logging =>
+        {
+            logging.SetMinimumLevel(LogLevel.Error);
+        })
+        .WithAutomaticReconnect([TimeSpan.FromMilliseconds(2000)])
+        .Build();
+
+        await HubConnection.StartAsync();
+
+        await HubConnection.InvokeAsync("JoinGroup4Tracker");
+        HubConnection.Remove("ReceiveNewRFIDCarState");
+
+        HubConnection.On<InterfaceResult>("ReceiveNewRFIDCarState", async (message) =>
+        {
+            try
+            {
+                // {success: false, result: 'SUTTLEDISTANCE_FF0000000000', message: 'WaitingToStart/InProgress/Completed/TimeoutOrFailed', list: null}
+                // {success: true, result: 'SUTTLESTR_B48A0AEFC58E', message: 'Completed', list: null}
+                JSRuntime.ConsoleWarn("ReceiveNewRFIDCarState", message);
+                string mac = (message.Result.ToString() ?? "_").Split("_")[1].ToUpper();
+                if (string.IsNullOrWhiteSpace(mac)) return;
+                RFIDCarStateDic[mac] = message;
+                JSRuntime.ConsoleWarn("RFIDCarStateDic", RFIDCarStateDic);
+
+                if (!message.Success && message.Message.Equals("TimeoutOrFailed", StringComparison.OrdinalIgnoreCase))
+                {
+                    Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                    Snackbar.Add($"终端设置项下发失败({mac})" + "<br/>" + "终端回复超时", Severity.Warning);
+                }
+                await InvokeAsync(StateHasChanged);
+            }
+            catch (Exception ex)
+            {
+                JSRuntime.ConsoleError("ReceiveNewRFIDCarState", ex);
+            }
+        });
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LocalStorageService.RemoveItemAsync($"{nameof(CargoPositionDeviceSuttle)}_NeedSend");
+            await InitList();
+        }
+    }
+
+    /// <summary>
+    /// 查询终端设备列表
+    /// </summary>
+    /// <returns></returns>
+    private async Task InitList()
+    {
+        IsLoading = true;
+        RFIDCarStateDic.Clear();
+        RFIDCarList = await CarApiService.GetRFIDCar();
+        foreach (var item in RFIDCarList)
+        {
+            InterfaceResult state = await CarApiService.CheckRFIDCarStateAsync(item.Mac);
+            RFIDCarStateDic[item.Mac] = state;
+        }
+        IsLoading = false;
+        SelectedRFIDCarList.Clear();
+        SelectedRFIDCar = null!;
+        EditingRFIDCar = null!;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// 开始准备进行终端设备信息的修改/添加
+    /// </summary>
+    /// <param name="item">终端设备信息</param>
+    private void StartedEditingItem(NewRFIDCarInfo item)
+    {
+        JSRuntime.ConsoleWarn(SelectedRFIDCarList.Count);
+        EditingRFIDCar = JsonConvert.DeserializeObject<NewRFIDCarInfo>(JsonConvert.SerializeObject(item)) ?? item;
+        DialogVisible = true;
+        JSRuntime.ConsoleWarn($"Event = StartedEditingItem, Data = {System.Text.Json.JsonSerializer.Serialize(item)}");
+        SelectedRFIDCar = JsonConvert.DeserializeObject<NewRFIDCarInfo>(JsonConvert.SerializeObject(item)) ?? item;
+    }
+
+    /// <summary>
+    /// 取消终端设备信息的修改/添加
+    /// </summary>
+    private void CanceledEditingItem()
+    {
+        DialogVisible = false;
+        EditingRFIDCar = null!;
+        SelectedRFIDCar = null!;
+    }
+
+    /// <summary>
+    /// 保存对终端设备信息的修改/添加
+    /// </summary>
+    /// <param name="item"></param>
+    /// <returns></returns>
+    private async Task CommittedItemChanges(NewRFIDCarInfo item)
+    {
+        await RFIDCarForm.Validate();
+        if (!ValidRFIDCarData) return;
+
+        InterfaceResult result = await CarApiService.SetRFIDCar(item);
+        if (!result.Success)
+        {
+            Snackbar.Clear();
+            Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+            Snackbar.Add(result.Message, Severity.Error);
+            return;
+        }
+
+        SelectedRFIDCar = null!;
+
+        await InitList();
+        CanceledEditingItem();
+    }
+
+    /// <summary>
+    /// 删除选中的终端设备
+    /// </summary>
+    /// <returns></returns>
+    private async Task DeleteRFIDCars()
+    {
+        if (SelectedRFIDCarList.Count <= 0) return;
+        bool? messageBoxResult = await MudMessageBox4Delete.Show();
+        if (!messageBoxResult.HasValue || !messageBoxResult.Value) return;
+
+        foreach (NewRFIDCarInfo item in SelectedRFIDCarList)
+        {
+            item.IsDelete = NewBoolString.True;
+            InterfaceResult result = await CarApiService.SetRFIDCar(item);
+            if (!result.Success)
+            {
+                Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+                Snackbar.Add($"删除终端设备出错({item.Mac})" + Environment.NewLine + result.Message, Severity.Error);
+            }
+        }
+        await InitList();
+    }
+
+    private async void SetCargoPositionDeviceAsync(NewRFIDCarInfo item)
+    {
+        if (item is null) return;
+        EditingRFIDCar = item;
+        Send_Distance = false;
+        Send_STR = false;
+        bool? messageBoxResult = await MudMessageBox4Send.Show();
+
+        EditingRFIDCar = null!;
+
+        if (!messageBoxResult.HasValue || !messageBoxResult.Value) return;
+        
+        if (Send_Distance)
+        {
+            Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+            Snackbar.Add($"开始下发终端设置项({item.Mac})" + "<br/>" + "Distance:\t" + item.SetDistance, Severity.Info);
+
+            CarApiService.SetCargoPositionDeviceAsync(new CargoPositionDeviceSuttle()
+                {
+                    IMAC = item.Mac,
+                    Type =
+                CargoPositionDeviceSuttleType.SuttleDistance,
+                    DistanceSet = item.SetDistance
+                });
+        }
+
+        if (Send_STR)
+        {
+            Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+            Snackbar.Add($"开始下发终端设置项({item.Mac})" + "<br/>" + "STR:\t" + item.SetSTR, Severity.Info);
+
+            CarApiService.SetCargoPositionDeviceAsync(new CargoPositionDeviceSuttle()
+                {
+                    IMAC = item.Mac,
+                    Type =
+                CargoPositionDeviceSuttleType.SuttleSTR,
+                    STR = item.SetSTR
+                });
+        }
+    }
+}

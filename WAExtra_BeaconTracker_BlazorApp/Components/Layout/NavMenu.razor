@@ -1,14 +1,9 @@
 ﻿<MudNavMenu>
-    <MudNavLink Href="/" Match="NavLinkMatch.All">Home</MudNavLink>
-    <MudNavLink Href="/counter" Match="NavLinkMatch.Prefix">Counter</MudNavLink>
-    @* <MudNavLink Href="/map/area" Match="NavLinkMatch.Prefix">@(Resources.区域 + Resources.管理)</MudNavLink>
-    <MudNavLink Href="/ULDDispatch" Match="NavLinkMatch.Prefix">@Resources.ULD查找监控</MudNavLink>
-    <MudNavGroup Title="@(Resources.管理)" Expanded="true">
-    <MudNavLink Href="/admin/users" Match="NavLinkMatch.Prefix">@(Resources.用户 + Resources.管理)</MudNavLink>
-    <MudNavLink Href="/admin/roles" Match="NavLinkMatch.Prefix">@(Resources.角色 + Resources.管理)</MudNavLink>
-    </MudNavGroup> *@
-    <MudNavLink Href="/weather" Match="NavLinkMatch.Prefix">weather</MudNavLink>
+    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.LocationOn">货物定位</MudNavLink>
+    <MudNavLink Href="/rfidcar/index" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.DeviceHub">叉车数据终端</MudNavLink>
+    @* <MudNavLink Href="/counter" Match="NavLinkMatch.Prefix">Counter</MudNavLink> *@
+    @* <MudNavLink Href="/weather" Match="NavLinkMatch.Prefix">weather</MudNavLink> *@
     <MudNavGroup Title="DEV" Expanded="true" Icon="@Icons.Material.Filled.DeveloperBoard">
-        <MudNavLink Href="/dev/colorlist" Match="NavLinkMatch.Prefix">Color List</MudNavLink>
+        <MudNavLink Href="/dev/colorlist" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.ColorLens">Color List</MudNavLink>
     </MudNavGroup>
 </MudNavMenu>

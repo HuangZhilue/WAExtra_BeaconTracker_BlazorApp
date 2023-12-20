@@ -1,5 +1,5 @@
 ﻿using System.Text.Json.Serialization;
-using WAExtra_BeaconTracker_BlazorApp.Models.NewCLEModels;
+using WAExtra_BeaconTracker_BlazorApp.Models;
 
 public class NewCLETrack
 {

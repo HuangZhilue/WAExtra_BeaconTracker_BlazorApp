@@ -1,11 +1,14 @@
 ﻿using ModelLibrary.CLEModels;
 using WAExtra_BeaconTracker_BlazorApp.Models;
 using WAExtra_BeaconTracker_BlazorApp.Models.NewCLEModels;
+using WAExtra_BeaconTracker_BlazorApp.Models.Settings;
 
 namespace WAExtra_BeaconTracker_BlazorApp.Services.ApiServices;
 
-public class IndexApiService(IServiceProvider service) : ApiServiceBase(service)
+public class CLEApiService(IServiceProvider service) : ApiServiceBase(service)
 {
+    private string BaseURL_CLE { get; } = Settings.BaseURL_CLE;
+
     public async Task<List<NewCLEInfo>> GetCLEInfo(string infoId = "")
     {
         using HttpRequestMessage request = new(HttpMethod.Get, BaseURL_CLE + "/Index/GetCLEInfo");

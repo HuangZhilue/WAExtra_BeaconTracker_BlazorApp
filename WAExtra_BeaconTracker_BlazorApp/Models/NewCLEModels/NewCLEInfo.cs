@@ -80,7 +80,7 @@ public class NewCLEInfo //: CLEInfo
     /// Networks
     /// </summary>
     [JsonPropertyName(nameof(Networks))]
-    public CLEInfoNetworks Networks { get; set; } = new ();
+    public CLEInfoNetworks Networks { get; set; } = new();
 
     /// <summary>
     /// 地图
